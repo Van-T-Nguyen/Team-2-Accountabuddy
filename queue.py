@@ -5,9 +5,11 @@ import asyncio
 from discord.ext.commands import has_permissions, MissingPermissions
 import bot_config
 from keyvaluemanagement import *
+from filemanagement import *
 
 
-interests = "interests.txt"
+
+interestsfile = "interests.txt"
 datadir = "queue/"
 queuefile = datadir+"userqueue.txt"
 
@@ -42,6 +44,32 @@ class QueueCog(commands.Cog):
             return #Abort
         
         #List interests
+        
+        interests = kvGetKeys(interestsfile)
+        #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
+        
+        interestlist = ""
+        for interest in interests:
+            interestlist += interest+'\n'
+        
+        statusmessage = await ctx.send("Possible interests:\n{}\nPlease enter one or a few!".format(interestlist))
+        
+        
+        #This block waits for a message reply.
+        def check(m):
+            return m.author == ctx.author and m.channel == ctx.channel
+        try:
+            newmsg = await self.bot.wait_for('message', check=check,timeout=60)
+        except asyncio.TimeoutError:
+            await statusmessage.edit(content="Timed out.")
+            return
+        
+        statusmessage.edit(content="Parsed message: {}".format(newmsg.content))
+        
+        return
+        
+        
+        
         #Ask for interests
         #Include in queue
         #Run Queue update
