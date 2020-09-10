@@ -1,0 +1,3 @@
+Jogging=====Physical Sports&Athletics$Outdoor Activities
+Frisbee Golf=====Physical Sports$Competitive Sports$Outdoor Activities
+Pizza====Food
