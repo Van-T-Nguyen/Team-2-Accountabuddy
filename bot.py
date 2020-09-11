@@ -10,7 +10,7 @@ import random
 
 os.environ['DISPLAY'] = ':0' #linux req'd
 
-textfiles = ['interests.txt'] #Defining a text file here ensures it's existence when the bot runs. 
+textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
 pfix = '!' #Changeable prefix for calling the bot.
 
@@ -77,7 +77,7 @@ async def on_ready():
     print(bot.user.id)
     print('------')
     await bot.change_presence(activity=discord.Game(name=(pfix+'help')))
-    bot.remove_command('help')
+    #bot.remove_command('help')
     if __name__ == '__main__':
         for extension in startup_extensions:
             try:
