@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 import os
 import asyncio
 from discord.ext.commands import has_permissions, MissingPermissions
@@ -98,7 +98,7 @@ class QueueCog(commands.Cog):
             
             
         
-        if(tries==0)
+        
         
         debugtext = "Parsed interests: {}\n".format(readinterests)
         
@@ -167,5 +167,5 @@ class QueueCog(commands.Cog):
         home = self.bot.get_guild(guild)
         await home.delete_role(name="Accountabud")"""
 
-    def setup(self, bot):
-        bot.add_cog(QueueCog(bot))
+def setup(bot):
+    bot.add_cog(QueueCog(bot))
