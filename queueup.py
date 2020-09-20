@@ -141,6 +141,15 @@ class QueueCog(commands.Cog):
         
         pass
     
+    @commands.command()
+    async def dropout(self,ctx):
+        if(kvGetKey(queuefile,ctx.author.id) is not None): #Key already exists
+            kvRemoveKey(queuefile,ctx.author.id) #Easy peasy
+            await ctx.send("Removed!")
+        else:
+            print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
+            await ctx.send("You're not on the waitlist!")
+    
     async def removeFromQueue(self,userid:int):
         """Removes a user from the queue."""
         if(kvGetKey(queuefile,user.id) is not None): #Key already exists
@@ -148,6 +157,7 @@ class QueueCog(commands.Cog):
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             pass
+    
     
     async def addToQueue(self,user,interests:list,sendDM=False):
         """Add a user to the queue with these interests. Returns an integer."""
@@ -170,9 +180,9 @@ class QueueCog(commands.Cog):
                 return 1 #Unable to send DM
                 
         
-        await self.queueUpdate()
         
-        pass
+        await self.queueUpdate()
+        return 0
     
     
     async def queueUpdate(self):
@@ -184,7 +194,7 @@ class QueueCog(commands.Cog):
         
         #Split interests into a list of it's interests isntead of a single compressed string
         interests = []
-        for prox in interestproxy:
+        for prox in interestsproxy:
             interests.append(prox.split('$'))
         
         for i, userid in enumerate(ids): #Iterate through each user and look for a pair.
@@ -200,7 +210,7 @@ class QueueCog(commands.Cog):
                     if(len(matches) > 0): #Has a match at all, not complicated
                         #Pair 'em
                         await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
-                        print("[queueUpdate] Paired {} and {}!!")
+                        print("[queueUpdate] Paired {} and {}!!".format(userid,otherid))
                         return await self.queueUpdate() #Start from the beginning because our array status has changed.
         
         print("[queueUpdate] is running.")
@@ -213,9 +223,9 @@ class QueueCog(commands.Cog):
         #Create channel
         #Ping the new role or the users
         #Send a final DM to the group's dms
-        
-        user1obj = self.bot.get_user(user1)
-        user2obj = self.bot.get_user(user2)
+        print("user1 is {}".format(user1))
+        user1obj = await self.bot.fetch_user(user1)
+        user2obj = await self.bot.fetch_user(user2)
         await user1obj.send("You've been paired with {}!".format(user2obj.name))
         await user2obj.send("You've been paired with {}!".format(user1obj.name))
         
