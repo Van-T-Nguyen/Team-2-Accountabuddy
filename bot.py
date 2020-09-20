@@ -112,9 +112,11 @@ async def on_message(message):
                 await log_channel.send("Attachments: "+ a)
             
             if(pfix in message.content) or (bot.user in message.mentions): #Someone tried to execute a command in DMs.
-                await message.channel.send("Sorry, commands aren't supported in DMs.")
-                return
-        return
+                #Allow commands
+                #await message.channel.send("Sorry, commands aren't supported in DMs.")
+                #return
+                pass
+        #return
     
     await bot.process_commands(message)
     
