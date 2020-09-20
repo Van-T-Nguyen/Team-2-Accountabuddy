@@ -98,7 +98,7 @@ class QueueCog(commands.Cog):
             
             
         
-        
+        """
         
         debugtext = "Parsed interests: {}\n".format(readinterests)
         
@@ -106,10 +106,28 @@ class QueueCog(commands.Cog):
         for read in readinterests:
             debugtext += "{}: {}\n".format(read,kvGetValue(interestsfile,read).split("$"))
         
-        await ctx.send(content=debugtext)
+        """
+        
+        debugtext += "\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
         
         
-        return
+        message = await ctx.send(content=debugtext)
+        
+        
+        #Add a thumb react to the message and wait for confirmation.
+        await message.add_reaction('👍')
+        def check(reaction, user):
+            return user == ctx.author and str(reaction.emoji) == '👍'
+        
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            #await channel.send('👎')
+            await message.edit(content="Timeout, took to long to respond.")
+            return
+        
+        await message.edit(content="Adding to waitlist...")
+        
         
         
         
