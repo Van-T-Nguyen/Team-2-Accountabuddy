@@ -20,7 +20,7 @@ class QueueCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        #self.homeserver = bot_config.Home_Server
+        self.homeserver = bot_config.Home_Server
     
     async def userInServer(self,userid,guildid):
         """Returns true if a user is in a specific server. False otherwise."""
@@ -94,7 +94,35 @@ class QueueCog(commands.Cog):
         
         pass
     
+    #Creates a new role and assigns it to an Accountabuddy pair
     
+    async def makeRole(self, user1: int):#, user2: int):
+        guild = bot_config.Home_Server
+        home = self.bot.get_guild(guild)
+        role = await home.create_role(name = "Accountabud", color = discord.Color(0x0000ff))
+        await home.get_member(user1).add_roles(role)
+        #await home.get_member(user2).add_roles(role)
+        return role
 
-def setup(bot):
-    bot.add_cog(QueueCog(bot))
+    #Creates a text channel only users with a certain role can access
+    async def makeRoom(self, userid: int, roleid: int):
+        guild = bot_config.Home_Server
+        home = self.bot.get_guild(guild)
+        role = home.get_role(roleid)
+        category = discord.utils.get(home.categories, name="pairs")
+        default = home.default_role
+        overwrite = discord.PermissionOverwrite()
+        overwrite.send_messages = True
+        overwrite.read_messages = True
+        channel = await category.create_text_channel('meeting room')
+        await home.get_channel(channel).edit(sync_permissions=False)
+        await home.get_channel(channel).set_permissions(role, read_messages=True, send_messages=True)
+        await home.get_channel(channel).set_permissions(default, read_messages=False, send_messages=False)
+
+    """async def deleteRole(self):
+        guild = bot_config.Home_Server
+        home = self.bot.get_guild(guild)
+        await home.delete_role(name="Accountabud")"""
+
+    def setup(self, bot):
+        bot.add_cog(QueueCog(bot))
