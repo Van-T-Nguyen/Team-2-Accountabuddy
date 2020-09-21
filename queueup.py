@@ -6,12 +6,15 @@ from discord.ext.commands import has_permissions, MissingPermissions
 import bot_config
 from keyvaluemanagement import *
 from filemanagement import *
-
-
+from discord.ext.commands import has_permissions, MissingPermissions
+import random
 
 interestsfile = "interests.txt"
 datadir = "queue/"
 queuefile = datadir+"userqueue.txt"
+channelpairs = datadir+"channelspairs.txt"
+
+textfiles = [queuefile,channelpairs] #Ensures these files exist on launch
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -21,6 +24,15 @@ class QueueCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.homeserver = bot_config.Home_Server
+        
+        for entry in textfiles:
+            try:
+                f = open(entry,"r")
+                f.close()
+            except Exception as e:
+                print("Making file: {}".format(entry))
+                f = open(entry,"w")
+                f.close()
     
     async def userInServer(self,userid,guildid):
         """Returns true if a user is in a specific server. False otherwise."""
@@ -90,7 +102,7 @@ class QueueCog(commands.Cog):
                 if(tries!=0):
                     await ctx.send("Could you try that again? I couldn't pick up anything you said from the list.")
                 else: #Give up
-                    await ctx.send("I couldn't follow you at all... Try again later, mayhaps?")
+                    await ctx.send("I couldn't follow you at all... Try again later!")
                     return
                 continue
             else:
@@ -112,7 +124,7 @@ class QueueCog(commands.Cog):
         for read in readinterests:
             debugtext += "{}\n".format(read)
         
-        debugtext += "\n\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
+        debugtext += "\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
         
         
         message = await ctx.send(content=debugtext)
@@ -184,6 +196,37 @@ class QueueCog(commands.Cog):
         await self.queueUpdate()
         return 0
     
+    @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
+    @commands.has_permissions(ban_members=True)
+    async def forcePair(self,ctx,user1:discord.User,user2:discord.User = None):
+        #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
+        #Curious how the pairs handle multiple users. Hopefully not bad.
+        
+        #User2 == None:
+        #User1 must not be message.author
+        #User1 must be in the server
+        #Execute pair on author.id and user1
+        #else:
+        #User1 and User2 must be in the server
+        #User1 and User2 must not be equal
+        #User1 and User2 must not both be the message.author.id
+        #Execute pair on user1 and user2
+        
+        
+        if(user2==None): #Author and...
+            if(user1.id != ctx.author.id and await self.userInServer(user1.id,self.homeserver) == True): #User not caller and in server
+                await self.pair(ctx.author.id,user1.id,removeFromQueue=False)
+                await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(ctx.author.name,user1.name))
+                return
+        else:#User 1 and user 2
+            if((user1.id == ctx.author.id and user2.id == ctx.author.id) == False and user1.id != user2.id): #Both users are different and also not both the owner
+                if(await self.userInServer(user1.id,self.homeserver) and await self.userInServer(user2.id,self.homeserver)): #Both users in the server
+                    await self.pair(user1.id,user2.id,removeFromQueue=False)
+                    await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(user1.name,user2.name))
+                    return
+        await ctx.send("Something went wrong.")
+        
+        
     
     async def queueUpdate(self):
         """Check for pairs and pair them if applicable."""
@@ -232,33 +275,50 @@ class QueueCog(commands.Cog):
         print("[pair] users are into {}".format(interests))
         #Still need to make channel and role ties
         
+        await self.giveWorkspace(user1,user2,interests) #Create role and channel
         
         if(removeFromQueue==True):
             kvRemoveKey(queuefile,user1)
             kvRemoveKey(queuefile,user2)
     
     
+   
+    
+    
+    #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
+    async def giveWorkspace(self,user1:int,user2:int,interets:list=['Unknown']):
+        #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
+        
+        role = await self.makeRole(users=[user1,user2]) #Fetch role and give it to the two peeps
+        channel = await self.makeRoom(role.id)
+        
+        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in: \n[placeholder]\n\n[Tutorial on how to use the bot, leave, and general discourse.]".format(user1,user2))
+        
+        kvSetValue(channelpairs,channel.id,role.id) #Save in file
     
     
     
-    
-    
-    
-    
+    def getColor(self):
+        return random.randint(0x7F7F7F, 0xFFFFFF) #50-100 brightness for each channel, so the color stays bright
     
     
     #Creates a new role and assigns it to an Accountabuddy pair
-    
-    async def makeRole(self, user1: int):#, user2: int):
+    #Logan: I've added optional list support and made a color maker function above.
+    async def makeRole(self, user1:int=-1, users:list=[]):#, user2: int):
         guild = bot_config.Home_Server
         home = self.bot.get_guild(guild)
-        role = await home.create_role(name = "Accountabud", color = discord.Color(0x0000ff))
-        await home.get_member(user1).add_roles(role)
+        #role = await home.create_role(name = "Accountabuds", color = discord.Color(0x0000ff))
+        role = await home.create_role(name = "Accountabuds", color = discord.Color(self.getColor()))
+        if(len(users)==0):#No members in bulk list
+            await home.get_member(user1).add_roles(role)
+        else: #Members in list
+            for user in users:
+                await home.get_member(user).add_roles(role)
         #await home.get_member(user2).add_roles(role)
         return role
 
     #Creates a text channel only users with a certain role can access
-    async def makeRoom(self, userid: int, roleid: int):
+    async def makeRoom(self, roleid: int):
         guild = bot_config.Home_Server
         home = self.bot.get_guild(guild)
         role = home.get_role(roleid)
@@ -268,9 +328,10 @@ class QueueCog(commands.Cog):
         overwrite.send_messages = True
         overwrite.read_messages = True
         channel = await category.create_text_channel('meeting room')
-        await home.get_channel(channel).edit(sync_permissions=False)
-        await home.get_channel(channel).set_permissions(role, read_messages=True, send_messages=True)
-        await home.get_channel(channel).set_permissions(default, read_messages=False, send_messages=False)
+        await channel.edit(sync_permissions=False)
+        await channel.set_permissions(role, read_messages=True, send_messages=True)
+        await channel.set_permissions(default, read_messages=False, send_messages=False)
+        return channel
 
     """async def deleteRole(self):
         guild = bot_config.Home_Server
