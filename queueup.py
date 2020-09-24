@@ -313,7 +313,10 @@ class QueueCog(commands.Cog):
             await home.get_member(user1).add_roles(role)
         else: #Members in list
             for user in users:
-                await home.get_member(user).add_roles(role)
+                print("User check: {}".format(user))
+                member = await home.fetch_member(user)
+                print("Member fetch name: {}".format(member.name))
+                await member.add_roles(role)
         #await home.get_member(user2).add_roles(role)
         return role
 
