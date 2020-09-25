@@ -10,9 +10,9 @@ import random
 
 os.environ['DISPLAY'] = ':0' #linux req'd
 
-textfiles = ['interests.txt'] #Defining a text file here ensures it's existence when the bot runs. 
+textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '!' #Changeable prefix for calling the bot.
+pfix = bot_config.pfix #Changeable prefix for calling the bot.
 
 startup_extensions = ['blankcog','queueup'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
@@ -112,9 +112,11 @@ async def on_message(message):
                 await log_channel.send("Attachments: "+ a)
             
             if(pfix in message.content) or (bot.user in message.mentions): #Someone tried to execute a command in DMs.
-                await message.channel.send("Sorry, commands aren't supported in DMs.")
-                return
-        return
+                #Allow commands
+                #await message.channel.send("Sorry, commands aren't supported in DMs.")
+                #return
+                pass
+        #return
     
     await bot.process_commands(message)
     
