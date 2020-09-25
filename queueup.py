@@ -286,16 +286,44 @@ class QueueCog(commands.Cog):
     
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
-    async def giveWorkspace(self,user1:int,user2:int,interets:list=['Unknown']):
+    async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
         #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
+        
+        interests = list(interests)
         
         role = await self.makeRole(users=[user1,user2]) #Fetch role and give it to the two peeps
         channel = await self.makeRoom(role.id)
         
-        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in: \n[placeholder]\n\n[Tutorial on how to use the bot, leave, and general discourse.]".format(user1,user2))
+        interestsline = "" #Format current interests given
+        if(len(interests)==1):
+            interestsline = interests[0]+'.'
+        elif(len(interests) > 1):
+            for i, thing in enumerate(interests): #Iterate with an integer
+                if((i+1) == len(interests)): #Last entry
+                    interestsline += " and {}.".format(thing)
+                elif((i+2) == len(interests)): #Second to last entry
+                    interestsline += "{} ".format(thing)
+                else: #Anything else (3+ entries)
+                    interestsline += "{}, ".format(thing)
+        
+        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! When you're ready to set a goal for eachother, do **{}goal <goal>** and I'll help keep you two together for that goal.\nIf you want to unpair, use **{}abandon** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
         
         kvSetValue(channelpairs,channel.id,role.id) #Save in file
     
+    
+    #TODO: FINISH SELF.HELPTEXT()
+    @commands.command()
+    async def helpme(self,ctx):
+        #Prints help.
+        
+        await ctx.send(self.helptext())
+    
+    #TODO: STUB FUNCTION
+    def helptext(self):
+        pf = bot_config.pfix
+        text = pf+"join - Join a queue and get paired"
+        
+        return text
     
     
     def getColor(self):
