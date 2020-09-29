@@ -58,7 +58,18 @@ class QueueCog(commands.Cog):
             #Invite to server
             await ctx.send("You're not in my home server, so you'll have to join it first before I can include you.\n Here you go: {}".format(bot_config.Invite_To_Home_Server))
             return #Abort
+
+        #If user is in a group or in the queue, deny re-entry
+        for x in ctx.author.roles:
+            if x.name == "Accountabuds":
+                await ctx.send("You're already in a stable relationship. Don't do this\n")
+                return
+        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
+            await ctx.send("You can't pair up with yourself!\n")
+            await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
+            return
         
+
         #List interests
         
         interests = kvGetKeys(interestsfile)
@@ -69,7 +80,7 @@ class QueueCog(commands.Cog):
             interestlist += interest+'\n'
         
         statusmessage = await ctx.send("Hi! I'm Accountabuddy. Select one or a few areas you want to be held accountable for and I'll work to pair you with someone also wanting to be held accountable for the same thing.\n\nAvailable communities:\n{}\nPlease enter one or a few!".format(interestlist))
-        
+
         tries = 2
         
         while tries != 0:
@@ -152,20 +163,139 @@ class QueueCog(commands.Cog):
             await message.edit(content="Can't send a DM to you, so I couldn't put you on the waitlist.")
         
         pass
-    
+
+    @commands.command()
+    async def update(self,ctx):
+        """Updates a queue listing"""
+        
+        #Makes sure they're not already in a group and that they have a queue entry
+        for x in ctx.author.roles:
+            if x.name == "Accountabuds":
+                await ctx.send("There's nothing to update because you can't be on the queue.\n")
+                return
+        if(kvGetKey(queuefile, ctx.author.id) == None): #Key doesn't exist
+            await ctx.send("You need a queue entry to update it.\n")
+            await ctx.send("If you want to make a queue listing, try {}join instead.\n".format(bot_config.pfix))
+            return
+        
+        #No need to check if they're in the guild if they're on the queue
+
+        #List interests
+        
+        interests = kvGetKeys(interestsfile)
+        #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
+        
+        interestlist = ""
+        for interest in interests:
+            interestlist += interest+'\n'
+        
+        statusmessage = await ctx.send("Hi! I'm Accountabuddy. Select one or a few areas you want to be held accountable for and I'll work to pair you with someone also wanting to be held accountable for the same thing.\n\nAvailable communities:\n{}\nPlease enter one or a few!".format(interestlist))
+
+        tries = 2
+        
+        while tries != 0:
+            tries -= 1
+        
+            #This block waits for a message reply.
+            def check(m):
+                return m.author == ctx.author and m.channel == ctx.channel
+            try:
+                newmsg = await self.bot.wait_for('message', check=check,timeout=60)
+            except asyncio.TimeoutError:
+                await statusmessage.edit(content="Timed out waiting for a reply.")
+                tries = 0
+                return
+        
+            #await statusmessage.edit(content="Parsed message: {}".format(newmsg.content))
+            
+            #Search the response for interests.
+            
+            readinterests = [] #List of found interests in message
+            words = newmsg.content.lower()
+            print("words: {}".format(words))
+            
+            for interest in interests:
+                if(interest.lower() in words ): #Inside the list of interests, all lowercase
+                    readinterests.append(interest)
+            
+            if(len(readinterests)==0):#Couldn't parse any interests
+                
+                if(tries!=0):
+                    await ctx.send("Could you try that again? I couldn't pick up anything you said from the list.")
+                else: #Give up
+                    await ctx.send("I couldn't follow you at all... Try again later!")
+                    return
+                continue
+            else:
+                break
+            
+            
+        
+        """
+        
+        debugtext = "Parsed interests: {}\n".format(readinterests)
+        
+        debugtext += "Relations:\n"
+        for read in readinterests:
+            debugtext += "{}: {}\n".format(read,kvGetValue(interestsfile,read).split("$"))
+        
+        """
+        
+        debugtext = "Here's what I caught:\n\n"
+        for read in readinterests:
+            debugtext += "{}\n".format(read)
+        
+        debugtext += "\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
+        
+        
+        message = await ctx.send(content=debugtext)
+        
+        
+        #Add a thumb react to the message and wait for confirmation.
+        await message.add_reaction('👍')
+        def check(reaction, user):
+            return user == ctx.author and str(reaction.emoji) == '👍'
+        
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        except asyncio.TimeoutError:
+            #await channel.send('👎')
+            await message.edit(content="Timeout, took to long to respond.")
+            return
+        
+        await message.edit(content="Adding to waitlist...")
+        
+        result = await self.addToQueue(ctx.author,readinterests,True)
+        
+        if(result == 0):
+            await message.edit(content="Done!")
+        if(result == 1): #Can't send DM
+            await message.edit(content="Can't send a DM to you, so I couldn't put you on the waitlist.")
+        
+        pass
+
+    """
+    @commands.command()
+    async def show(self, ctx):
+        #TODO:Write a kv command that gets the whole queue and pastes it
+        #ctx.send("")
+    """
+
+    #TODO Make a command that can manually pair with a user
+
     @commands.command()
     async def dropout(self,ctx):
-        if(kvGetKey(queuefile,ctx.author.id) is not None): #Key already exists
-            kvRemoveKey(queuefile,ctx.author.id) #Easy peasy
+        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
+            kvRemoveKey(queuefile, ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
     
-    async def removeFromQueue(self,userid:int):
+    async def removeFromQueue(self, userid:int):
         """Removes a user from the queue."""
-        if(kvGetKey(queuefile,user.id) is not None): #Key already exists
-            kvRemoveKey(queuefile,userid) #Easy peasy
+        if(kvGetKey(queuefile, userid) != None): #Key already exists
+            kvRemoveKey(queuefile, userid) #Easy peasy
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             pass
@@ -179,10 +309,10 @@ class QueueCog(commands.Cog):
         
         
         #queuefile
-        if(kvGetKey(queuefile,user.id) is not None): #Key already exists
+        if(kvGetKey(queuefile, user.id) is not None): #Key already exists
             pass #No error... yet.
         
-        kvSetValue(queuefile,user.id,"$".join(interests)) #Out we go.
+        kvSetValue(queuefile, user.id,"$".join(interests)) #Out we go.
         
         if(sendDM==True):
             try:
@@ -195,6 +325,30 @@ class QueueCog(commands.Cog):
         
         await self.queueUpdate()
         return 0
+    
+    @commands.command()
+    async def abandon(self, ctx):
+        #Let's a user quit their current group.
+
+        paired = False
+
+        for x in ctx.author.roles:
+            if x.name == "Accountabuds":
+                role = x
+                paired = True
+
+        #If they aren't currently paired with someone, quit.
+        if(paired == False):
+            await ctx.send("Can't really abandon something you're not in, can you?")
+            return
+        
+        #for x in role.members:
+        #    await x.send("I hope it was a fruitful endeavor.") #This does not work. It breaks everything after it
+        
+        print(role.permissions)
+        #await role.delete()
+        #print(role.members)
+            
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     @commands.has_permissions(ban_members=True)
