@@ -11,10 +11,10 @@ import random
 
 interestsfile = "interests.txt"
 datadir = "queue/"
-queuefile = datadir+"userqueue.txt"
-channelpairs = datadir+"channelspairs.txt"
+queuefile = datadir + "userqueue.txt"
+channelpairs = datadir + "channelspairs.txt"
 
-textfiles = [queuefile,channelpairs] #Ensures these files exist on launch
+textfiles = [queuefile, channelpairs] #Ensures these files exist on launch
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -164,122 +164,26 @@ class QueueCog(commands.Cog):
         
         pass
 
-    @commands.command()
-    async def update(self,ctx):
-        """Updates a queue listing"""
-        
-        #Makes sure they're not already in a group and that they have a queue entry
-        for x in ctx.author.roles:
-            if x.name == "Accountabuds":
-                await ctx.send("There's nothing to update because you can't be on the queue.\n")
-                return
-        if(kvGetKey(queuefile, ctx.author.id) == None): #Key doesn't exist
-            await ctx.send("You need a queue entry to update it.\n")
-            await ctx.send("If you want to make a queue listing, try {}join instead.\n".format(bot_config.pfix))
-            return
-        
-        #No need to check if they're in the guild if they're on the queue
-
-        #List interests
-        
-        interests = kvGetKeys(interestsfile)
-        #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
-        
-        interestlist = ""
-        for interest in interests:
-            interestlist += interest+'\n'
-        
-        statusmessage = await ctx.send("Hi! I'm Accountabuddy. Select one or a few areas you want to be held accountable for and I'll work to pair you with someone also wanting to be held accountable for the same thing.\n\nAvailable communities:\n{}\nPlease enter one or a few!".format(interestlist))
-
-        tries = 2
-        
-        while tries != 0:
-            tries -= 1
-        
-            #This block waits for a message reply.
-            def check(m):
-                return m.author == ctx.author and m.channel == ctx.channel
-            try:
-                newmsg = await self.bot.wait_for('message', check=check,timeout=60)
-            except asyncio.TimeoutError:
-                await statusmessage.edit(content="Timed out waiting for a reply.")
-                tries = 0
-                return
-        
-            #await statusmessage.edit(content="Parsed message: {}".format(newmsg.content))
-            
-            #Search the response for interests.
-            
-            readinterests = [] #List of found interests in message
-            words = newmsg.content.lower()
-            print("words: {}".format(words))
-            
-            for interest in interests:
-                if(interest.lower() in words ): #Inside the list of interests, all lowercase
-                    readinterests.append(interest)
-            
-            if(len(readinterests)==0):#Couldn't parse any interests
-                
-                if(tries!=0):
-                    await ctx.send("Could you try that again? I couldn't pick up anything you said from the list.")
-                else: #Give up
-                    await ctx.send("I couldn't follow you at all... Try again later!")
-                    return
-                continue
-            else:
-                break
-            
-            
-        
-        """
-        
-        debugtext = "Parsed interests: {}\n".format(readinterests)
-        
-        debugtext += "Relations:\n"
-        for read in readinterests:
-            debugtext += "{}: {}\n".format(read,kvGetValue(interestsfile,read).split("$"))
-        
-        """
-        
-        debugtext = "Here's what I caught:\n\n"
-        for read in readinterests:
-            debugtext += "{}\n".format(read)
-        
-        debugtext += "\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
-        
-        
-        message = await ctx.send(content=debugtext)
-        
-        
-        #Add a thumb react to the message and wait for confirmation.
-        await message.add_reaction('👍')
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) == '👍'
-        
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            #await channel.send('👎')
-            await message.edit(content="Timeout, took to long to respond.")
-            return
-        
-        await message.edit(content="Adding to waitlist...")
-        
-        result = await self.addToQueue(ctx.author,readinterests,True)
-        
-        if(result == 0):
-            await message.edit(content="Done!")
-        if(result == 1): #Can't send DM
-            await message.edit(content="Can't send a DM to you, so I couldn't put you on the waitlist.")
-        
-        pass
-
     """
     @commands.command()
     async def show(self, ctx):
         #TODO:Write a kv command that gets the whole queue and pastes it
         #ctx.send("")
     """
+
+    @commands.command()
+    async def list(self, ctx):
+        
+        users = kvGetKeys(queuefile)
+        if (users == ['']):
+            await ctx.send("There is no one on the list currently.")
+            return
+        interests = kvGetValues(queuefile)
+        guild = bot_config.Home_Server
+        home = self.bot.get_guild(guild)
+
+        for x in range(len(users)):
+            await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
 
     #TODO Make a command that can manually pair with a user
 
@@ -330,29 +234,39 @@ class QueueCog(commands.Cog):
     async def abandon(self, ctx):
         #Let's a user quit their current group.
 
-        paired = False
+        #paired = False
+
+        #Makes it so that the specific channel to be deleted is easy to find.
+        if (ctx.channel.name != "meeting-room"):
+            await ctx.send("You can only abandon groups in your meeting room!")
+            return
 
         for x in ctx.author.roles:
             if x.name == "Accountabuds":
                 role = x
-                paired = True
+                #paired = True
 
+        """
         #If they aren't currently paired with someone, quit.
         if(paired == False):
             await ctx.send("Can't really abandon something you're not in, can you?")
             return
+        """
+
+        for x in role.members:
+            await x.create_dm()
+            await x.dm_channel.send("I hope it was a fruitful endeavor.")
         
-        #for x in role.members:
-        #    await x.send("I hope it was a fruitful endeavor.") #This does not work. It breaks everything after it
-        
+        await ctx.channel.delete()
         print(role.permissions)
-        #await role.delete()
+        #print(ctx.permissions_in("meeting-room"))
+        await role.delete()
         #print(role.members)
             
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     @commands.has_permissions(ban_members=True)
-    async def forcePair(self,ctx,user1:discord.User,user2:discord.User = None):
+    async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
         #Curious how the pairs handle multiple users. Hopefully not bad.
         
@@ -487,8 +401,7 @@ class QueueCog(commands.Cog):
     #Creates a new role and assigns it to an Accountabuddy pair
     #Logan: I've added optional list support and made a color maker function above.
     async def makeRole(self, user1:int=-1, users:list=[]):#, user2: int):
-        guild = bot_config.Home_Server
-        home = self.bot.get_guild(guild)
+        home = self.bot.get_guild(self.homeserver)
         #role = await home.create_role(name = "Accountabuds", color = discord.Color(0x0000ff))
         role = await home.create_role(name = "Accountabuds", color = discord.Color(self.getColor()))
         if(len(users)==0):#No members in bulk list
@@ -504,8 +417,7 @@ class QueueCog(commands.Cog):
 
     #Creates a text channel only users with a certain role can access
     async def makeRoom(self, roleid: int):
-        guild = bot_config.Home_Server
-        home = self.bot.get_guild(guild)
+        home = self.bot.get_guild(self.homeserver)
         role = home.get_role(roleid)
         category = discord.utils.get(home.categories, name="pairs")
         default = home.default_role
