@@ -84,7 +84,7 @@ async def on_ready():
                 bot.load_extension(extension)
             except Exception as e:
                 print('Failed to load extension ' + extension, file=sys.stderr)
-                traceback.print_exc()
+                traceback.print_exc()       
     
     for entry in textfiles:
         try:
@@ -119,7 +119,8 @@ async def on_message(message):
         #return
     
     await bot.process_commands(message)
-    
+#yeet
+print("yeet")
 
 @bot.event
 async def on_command_error(ctx, error):

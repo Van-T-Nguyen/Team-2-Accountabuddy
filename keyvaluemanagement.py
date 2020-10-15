@@ -130,13 +130,13 @@ def kvGetValue(path,key):
     return None
 
 
-def kvGetKey(path,value):
+def kvGetKey(path, value):
     """Gets key from value. Returns None if not present."""
     keys, values = kvGetKeysValues(path)
     #print("{} in {}".format(str(item),outlist))
-    
-    for i in range(len(values)):
-        if values[i] == value:
-            return keys[i]
-    return None
-
+    try: #If it can find the id in keys, it says so
+        x = keys.index(str(value))
+    except ValueError:
+        return None
+    else:
+        return keys[x]

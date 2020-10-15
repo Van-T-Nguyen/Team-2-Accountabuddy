@@ -11,10 +11,10 @@ import random
 
 interestsfile = "interests.txt"
 datadir = "queue/"
-queuefile = datadir+"userqueue.txt"
-channelpairs = datadir+"channelspairs.txt"
+queuefile = datadir + "userqueue.txt"
+channelpairs = datadir + "channelspairs.txt"
 
-textfiles = [queuefile,channelpairs] #Ensures these files exist on launch
+textfiles = [queuefile, channelpairs] #Ensures these files exist on launch
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -58,7 +58,18 @@ class QueueCog(commands.Cog):
             #Invite to server
             await ctx.send("You're not in my home server, so you'll have to join it first before I can include you.\n Here you go: {}".format(bot_config.Invite_To_Home_Server))
             return #Abort
+
+        #If user is in a group or in the queue, deny re-entry
+        for x in ctx.author.roles:
+            if x.name == "Accountabuds":
+                await ctx.send("You're already in a stable relationship. Don't do this\n")
+                return
+        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
+            await ctx.send("You can't pair up with yourself!\n")
+            await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
+            return
         
+
         #List interests
         
         interests = kvGetKeys(interestsfile)
@@ -69,7 +80,7 @@ class QueueCog(commands.Cog):
             interestlist += interest+'\n'
         
         statusmessage = await ctx.send("Hi! I'm Accountabuddy. Select one or a few areas you want to be held accountable for and I'll work to pair you with someone also wanting to be held accountable for the same thing.\n\nAvailable communities:\n{}\nPlease enter one or a few!".format(interestlist))
-        
+
         tries = 2
         
         while tries != 0:
@@ -152,20 +163,43 @@ class QueueCog(commands.Cog):
             await message.edit(content="Can't send a DM to you, so I couldn't put you on the waitlist.")
         
         pass
-    
+
+    """
+    @commands.command()
+    async def show(self, ctx):
+        #TODO:Write a kv command that gets the whole queue and pastes it
+        #ctx.send("")
+    """
+
+    @commands.command()
+    async def list(self, ctx):
+        
+        users = kvGetKeys(queuefile)
+        if (users == ['']):
+            await ctx.send("There is no one on the list currently.")
+            return
+        interests = kvGetValues(queuefile)
+        guild = bot_config.Home_Server
+        home = self.bot.get_guild(guild)
+
+        for x in range(len(users)):
+            await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
+
+    #TODO Make a command that can manually pair with a user
+
     @commands.command()
     async def dropout(self,ctx):
-        if(kvGetKey(queuefile,ctx.author.id) is not None): #Key already exists
-            kvRemoveKey(queuefile,ctx.author.id) #Easy peasy
+        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
+            kvRemoveKey(queuefile, ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
     
-    async def removeFromQueue(self,userid:int):
+    async def removeFromQueue(self, userid:int):
         """Removes a user from the queue."""
-        if(kvGetKey(queuefile,user.id) is not None): #Key already exists
-            kvRemoveKey(queuefile,userid) #Easy peasy
+        if(kvGetKey(queuefile, userid) != None): #Key already exists
+            kvRemoveKey(queuefile, userid) #Easy peasy
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             pass
@@ -179,10 +213,10 @@ class QueueCog(commands.Cog):
         
         
         #queuefile
-        if(kvGetKey(queuefile,user.id) is not None): #Key already exists
+        if(kvGetKey(queuefile, user.id) is not None): #Key already exists
             pass #No error... yet.
         
-        kvSetValue(queuefile,user.id,"$".join(interests)) #Out we go.
+        kvSetValue(queuefile, user.id,"$".join(interests)) #Out we go.
         
         if(sendDM==True):
             try:
@@ -196,9 +230,43 @@ class QueueCog(commands.Cog):
         await self.queueUpdate()
         return 0
     
+    @commands.command()
+    async def abandon(self, ctx):
+        #Let's a user quit their current group.
+
+        #paired = False
+
+        #Makes it so that the specific channel to be deleted is easy to find.
+        if (ctx.channel.name != "meeting-room"):
+            await ctx.send("You can only abandon groups in your meeting room!")
+            return
+
+        for x in ctx.author.roles:
+            if x.name == "Accountabuds":
+                role = x
+                #paired = True
+
+        """
+        #If they aren't currently paired with someone, quit.
+        if(paired == False):
+            await ctx.send("Can't really abandon something you're not in, can you?")
+            return
+        """
+
+        for x in role.members:
+            await x.create_dm()
+            await x.dm_channel.send("I hope it was a fruitful endeavor.")
+        
+        await ctx.channel.delete()
+        print(role.permissions)
+        #print(ctx.permissions_in("meeting-room"))
+        await role.delete()
+        #print(role.members)
+            
+    
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     @commands.has_permissions(ban_members=True)
-    async def forcePair(self,ctx,user1:discord.User,user2:discord.User = None):
+    async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
         #Curious how the pairs handle multiple users. Hopefully not bad.
         
@@ -333,8 +401,7 @@ class QueueCog(commands.Cog):
     #Creates a new role and assigns it to an Accountabuddy pair
     #Logan: I've added optional list support and made a color maker function above.
     async def makeRole(self, user1:int=-1, users:list=[]):#, user2: int):
-        guild = bot_config.Home_Server
-        home = self.bot.get_guild(guild)
+        home = self.bot.get_guild(self.homeserver)
         #role = await home.create_role(name = "Accountabuds", color = discord.Color(0x0000ff))
         role = await home.create_role(name = "Accountabuds", color = discord.Color(self.getColor()))
         if(len(users)==0):#No members in bulk list
@@ -350,8 +417,7 @@ class QueueCog(commands.Cog):
 
     #Creates a text channel only users with a certain role can access
     async def makeRoom(self, roleid: int):
-        guild = bot_config.Home_Server
-        home = self.bot.get_guild(guild)
+        home = self.bot.get_guild(self.homeserver)
         role = home.get_role(roleid)
         category = discord.utils.get(home.categories, name="pairs")
         default = home.default_role

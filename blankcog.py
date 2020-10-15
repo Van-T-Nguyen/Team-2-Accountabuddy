@@ -27,12 +27,6 @@ class BlankCog(commands.Cog):
         await asyncio.sleep(5)
         
         await ctx.send("Also, 5 seconds passed.")
-
-    @commands.command()
-    async def test2(self,ctx):
-
-        role = await queueup.QueueCog.makeRole(self, 162777143028350976)
-        await queueup.QueueCog.makeRoom(self, 162777143028350976, role)
     
     """@commands.commands()
     async def clear(ctx):
