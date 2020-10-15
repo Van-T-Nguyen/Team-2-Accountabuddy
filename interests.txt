@@ -3,3 +3,5 @@ Frisbee Golf=====Physical Sports$Competitive Sports$Outdoor Activities
 Study Habits=====Education$Habits
 Food=====Pizza$Burgers
 Save Money=====Finances$Habits
+Meditate=====Concentration$Habits
+Reading=====Education$Habits
