@@ -1,4 +1,5 @@
 Jogging=====Physical Sports & Athletics$Outdoor Activities
 Frisbee Golf=====Physical Sports$Competitive Sports$Outdoor Activities
 Study Habits=====Education$Habits
-Food=====Pizza$Burgers
+Pizza=====Food
+Burgers=====Food
