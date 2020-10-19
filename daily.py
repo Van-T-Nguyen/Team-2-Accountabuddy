@@ -23,7 +23,8 @@ class sendDaily(commands.Cog):
 	async def daily(self, ctx, numDays):
 		await ctx.send("Attempting to send messages every day")
 		self.limit = int(numDays)
-		self.ctx = ctx #not sure if this works 
+		self.ctx = ctx
+		self.day = 1
 
 		self.dailyMsg.start()
 
@@ -31,14 +32,15 @@ class sendDaily(commands.Cog):
 	@tasks.loop(minutes=1)
 	async def dailyMsg(self):
 		await self.createMessage(self.ctx, self.day, self.limit)
-		self.day = self.day + 1
 		if self.day == self.limit:
 			self.dailyMsg.stop()
+		self.day = self.day + 1
+
 
 
 	async def createMessage(self, ctx, curDay, maxDay):
 		string = "Hey all, AccountaBuddy here. I'm here to check in on how you are doing in your tasks."
-		dayCount = "It is day {} out of {}:".format(curDay, maxDay)
+		dayCount = "It is day {} out of {}.".format(curDay, maxDay)
 		await ctx.send(string)
 		await ctx.send(dayCount)
 

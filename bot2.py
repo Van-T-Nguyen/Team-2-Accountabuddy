@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands import has_permissions, MissingPermissions
 import discord.abc
 import sys, traceback
@@ -7,14 +7,18 @@ import bot_config
 import psutil
 import os
 import random
+import re
+import schedule
+import time
+from remove import remove_role, remove_channel
 
 os.environ['DISPLAY'] = ':0' #linux req'd
 
-textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
+textfiles = ['interests.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '/'  #Changeable prefix for calling the bot.
+pfix = '/' #Changeable prefix for calling the bot.
 
-startup_extensions = ['blankcog','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
+startup_extensions = ['blankcog','queueup', 'daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
 def makeList(path):
     """Return a list of ints from this file."""
@@ -76,7 +80,6 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    await bot.change_presence(activity=discord.Game(name=(pfix+'help')))
     #bot.remove_command('help')
     if __name__ == '__main__':
         for extension in startup_extensions:
@@ -84,7 +87,7 @@ async def on_ready():
                 bot.load_extension(extension)
             except Exception as e:
                 print('Failed to load extension ' + extension, file=sys.stderr)
-                traceback.print_exc()       
+                traceback.print_exc()
     
     for entry in textfiles:
         try:
@@ -94,33 +97,28 @@ async def on_ready():
             print("Making file: {}".format(entry))
             f = open(entry,"w")
             f.close()
-    
     print('Successfully logged in and booted!')
+
 
 @bot.event
 async def on_message(message):
-    log_channel = bot.get_channel(bot_config.DM_Channel) #This channel ID logs DMs. Just for consistency.
-    
-    if isinstance(message.channel, discord.abc.PrivateChannel): #Forward DMs to a DM Logger channel.
-        if message.author.id != 0: 
-            #Sends message to the logs channel with the Name, ID, and message from the DM
-            await log_channel.send(message.author.name + "/" + str(message.author.id) + " : " + message.content)
-            if(message.attachments):
-                a = ""
-                for i in message.attachments: a += a + i.url
-                
-                await log_channel.send("Attachments: "+ a)
-            
-            if(pfix in message.content) or (bot.user in message.mentions): #Someone tried to execute a command in DMs.
-                #Allow commands
-                #await message.channel.send("Sorry, commands aren't supported in DMs.")
-                #return
-                pass
-        #return
-    
-    await bot.process_commands(message)
-#yeet
-print("yeet")
+	if(message.author != bot.user):
+		check = re.search("\/test", message.content)
+		pattern_remove = re.compile("/remove (\S+)")
+		remove_check = pattern_remove.match(message.content)
+		pattern_challen = re.compile("/removeChannel (\S+)")
+		channel_check = pattern_challen.match(message.content)
+		test = message.content.split()
+
+		if(remove_check):
+			await message.channel.send("Attempting to remove: " + remove_check.group(1))
+			await remove_role(message, remove_check.group(1))
+		if(channel_check):
+			await message.channel.send("Attempting to remove: " + channel_check.group(1))
+			await remove_channel(message, channel_check.group(1))
+		if(check):
+			 await message.channel.send("Test complete. Congradulations")
+
 
 @bot.event
 async def on_command_error(ctx, error):
@@ -140,5 +138,8 @@ async def keylock(ctx):
         await ctx.send("Keylock disabled - Everyone can play!")
         
 """
+
+#--------------------------------------------------------------------------------------------------------
+
 
 bot.run(bot_config.token, reconnect=True)
