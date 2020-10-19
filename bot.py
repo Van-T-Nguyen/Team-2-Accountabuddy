@@ -11,7 +11,6 @@ import re
 import schedule
 import time
 from remove import remove_role, remove_channel
-from daily import sendDaily
 
 os.environ['DISPLAY'] = ':0' #linux req'd
 
@@ -19,7 +18,7 @@ textfiles = ['interests.txt'] #Defining a text file here ensures it's existence 
 
 pfix = '/' #Changeable prefix for calling the bot.
 
-startup_extensions = ['blankcog','queueup'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
+startup_extensions = ['blankcog','queueup', 'daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
 def makeList(path):
     """Return a list of ints from this file."""
@@ -98,9 +97,6 @@ async def on_ready():
             print("Making file: {}".format(entry))
             f = open(entry,"w")
             f.close()
-            
-    bot.add_cog(sendDaily(bot))
-    
     print('Successfully logged in and booted!')
 
 
