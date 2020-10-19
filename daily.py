@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord.ext.commands import has_permissions, MissingPermissions
 import discord.abc
 import sys, traceback
@@ -8,21 +8,39 @@ import psutil
 import os
 import random
 import re
-import schedule
-import time
-
-@commands.command()
-async def sendDaily(message, numDays, time):
-	days = 1
-	await message.channel.send("test message at {} for {} days".format(time, numDays))
-	SCD = schedule.every().day.at(time).do(dailyMsg, message, days, numDays)
-
-	while(days <= numDays):
-		if SCD.should_run:
-			days = days + 1
-		await schedule.run_pending()
-		await time.sleep(1)
+import asyncio
 
 
-async def dailyMsg(message, days, numDays):
-	await message.channel.send("<@163824787540541441> test message. Day {} out of {}".format(days, numDays))
+class sendDaily(commands.Cog):
+	def __init__(self, bot):
+		self.bot = bot
+		self.homeserver = bot_config.Home_Server
+		self.day = 1
+		self.limit = 0
+		self.ctx = None
+
+	@commands.command()
+	async def daily(self, ctx, numDays):
+		await ctx.send("Attempting to send messages every day")
+		self.limit = int(numDays)
+		self.ctx = ctx
+
+		self.dailyMsg.start()
+
+
+	@tasks.loop(minutes=1)
+	async def dailyMsg(self):
+		await self.createMessage(self.ctx, self.day, self.limit)
+		self.day = self.day + 1
+		if self.day == self.limit:
+			self.dailyMsg.stop()
+
+
+	async def createMessage(self, ctx, curDay, maxDay):
+		string = "Hey all, AccountaBuddy here. I'm here to check in on how you are doing in your tasks."
+		dayCount = "It is day {} out of {}:".format(curDay, maxDay)
+		await ctx.send(string)
+		await ctx.send(dayCount)
+
+def setup(bot):
+	bot.add_cog(sendDaily(bot))
