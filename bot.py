@@ -121,7 +121,7 @@ async def on_message(message):
 			await message.channel.send("Attempting to remove: " + channel_check.group(1))
 			await remove_channel(message, channel_check.group(1))
 		if(check):
-			 await message.channel.send("Test complete")
+			 await message.channel.send("Test complete. Congradulations")
 
 
 @bot.event

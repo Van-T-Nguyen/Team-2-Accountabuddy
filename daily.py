@@ -23,7 +23,7 @@ class sendDaily(commands.Cog):
 	async def daily(self, ctx, numDays):
 		await ctx.send("Attempting to send messages every day")
 		self.limit = int(numDays)
-		self.ctx = ctx
+		self.ctx = ctx #not sure if this works 
 
 		self.dailyMsg.start()
 
