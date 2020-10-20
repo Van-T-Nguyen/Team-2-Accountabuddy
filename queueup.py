@@ -51,7 +51,7 @@ class QueueCog(commands.Cog):
     async def join(self,ctx):
         """Initiate joining of the queue."""
         
-        @commands.command()
+    @commands.command()
     async def join(self,ctx):
         """Initiate joining of the queue."""
         
