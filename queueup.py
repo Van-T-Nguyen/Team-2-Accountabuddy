@@ -51,23 +51,54 @@ class QueueCog(commands.Cog):
     async def join(self,ctx):
         """Initiate joining of the queue."""
         
+        @commands.command()
+    async def join(self,ctx):
+        """Initiate joining of the queue."""
+        
         #Check if in the home server
         #if not...
         #...Invite and bail.
-        if(await self.userInServer(ctx.author.id,self.homeserver) == False): #Not in home server.
+        """Returns true if a user is in a specific server. False otherwise."""
+        guild = await self.bot.fetch_guild(self.homeserver) 
+        members = guild.members
+        target = await guild.fetch_member(ctx.author.id)
+        print("call details: userid: {}".format(ctx.author.id))
+        print("target: {}".format(target))
+        if(target.id != ctx.author.id): #In server,
+            print("Failed loop: Members:\n{}\n\nGuild:\n{}".format(members,guild))
             #Invite to server
             await ctx.send("You're not in my home server, so you'll have to join it first before I can include you.\n Here you go: {}".format(bot_config.Invite_To_Home_Server))
             return #Abort
 
-        #If user is in a group or in the queue, deny re-entry
+        #If user is in a group, exit
         for x in ctx.author.roles:
             if x.name == "Accountabuds":
                 await ctx.send("You're already in a stable relationship. Don't do this\n")
-                return
-        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
+                return      
+
+        if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
             await ctx.send("You can't pair up with yourself!\n")
             await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
             return
+
+        if (ctx.message.mentions != []): #If user mentioned someone
+            if (ctx.message.mentions[0] == ctx.author): #Only reads first mention
+                await ctx.send("You must be lonely, huh?\n") #Exits if user tried to join with themselves
+                await ctx.send("Try {}join without arguments.\n".format(bot_config.pfix))
+                return
+
+            else:
+                userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
+                if (userListing != None): #Pairs with someone on the list
+                    interests = kvGetValue(queuefile, userListing)
+                    await self.pair(ctx.author.id, ctx.message.mentions[0].id, interests)
+                    return
+                else:
+                    await ctx.send("You gotta ask for permission before wanting to join with people, buddy.")
+                    await ctx.send("We'll put you on the list instead...\n\n")
+
+    #If user is not in a group, on the queue, is a member, and didn't request someone, join normally.
+
         
 
         #List interests
