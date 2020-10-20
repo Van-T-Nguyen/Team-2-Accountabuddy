@@ -466,9 +466,19 @@ class QueueCog(commands.Cog):
         home = self.bot.get_guild(guild)
         await home.delete_role(name="Accountabud")"""
 
-
-
-
+    @commands.command()
+    async def li(self, ctx):
+        """
+        This lists all interests currently catalogued.
+        """
+        interests = kvGetKeys(interestsfile)
+        #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
+        
+        interestlist = ""
+        for interest in interests:
+            interestlist += interest+'\n'
+        ctx.send(interestlist);
+        
 
 
 def setup(bot):
