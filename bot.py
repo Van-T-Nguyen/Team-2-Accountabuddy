@@ -119,7 +119,6 @@ async def on_message(message):
         #return
     
     await bot.process_commands(message)
-    
 
 @bot.event
 async def on_command_error(ctx, error):
