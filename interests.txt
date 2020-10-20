@@ -6,3 +6,4 @@ Burgers=====Food
 Save Money=====Finances$Habits
 Meditate=====Concentration$Habits
 Reading=====Education$Habits
+Dieting=====Food$Habits
