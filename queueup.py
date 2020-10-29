@@ -326,7 +326,19 @@ class QueueCog(commands.Cog):
         
         print("[queueUpdate] is running.")
     
-    
+    #TODO: FINISH leaderboard
+    @commands.command()
+    async def leaderboard(self,ctx):
+        #prints the leaderboard
+
+        await ctx.send(self.leaderboardText())
+    #TODO: STUB FUNCTION
+    def leaderboardText(self):
+        pf = bot_config.pfix
+        text = pf+"leaderboard"
+
+        return text
+
     
     async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
