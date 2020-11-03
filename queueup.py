@@ -10,6 +10,7 @@ from discord.ext.commands import has_permissions, MissingPermissions
 import random
 
 interestsfile = "interests.txt"
+goalsfile = "goals.txt"
 datadir = "queue/"
 queuefile = datadir + "userqueue.txt"
 channelpairs = datadir + "channelspairs.txt"
@@ -477,8 +478,45 @@ class QueueCog(commands.Cog):
         interestlist = ""
         for interest in interests:
             interestlist += interest+'\n'
-        ctx.send(interestlist);
+        await ctx.send(interestlist);
         
+    @commands.command()
+    async def addgoal(self, ctx): # Need to remove the pfix and command from entry
+        temp = kvGetKeys(goalsfile);
+        splitmess = ctx.message.content.split(); # splits string by white spaces
+        mess = ""; 
+        try:
+            i = temp.index(str(ctx.author.id));
+            mess = kvGetValue(goalsfile, str(ctx.author.id))
+            for word in splitmess: # ignores first word in message because we know it's just the command and is unneeded.
+                if word != splitmess[0]:
+                    mess = mess + " " + word; # Places words into the list
+            removeFromList(goalsfile, str(ctx.author.id));
+            addToList(goalsfile, str(ctx.author.id) + seperator + mess + ";");
+        except ValueError: # Value not found
+            for word in splitmess: # ignores first word in message because we know it's just the command and is unneeded.
+                if word != splitmess[0]:
+                    mess = mess + " " + word; # Places words into the list
+            addToList(goalsfile, str(ctx.author.id) + seperator + mess + ";");
+        except Exception as e:
+            print("Exception detected: []".format(e));
+
+    @commands.command()
+    async def showgoals(self, ctx): # Need to separate and send line by line
+        temp = kvGetKeys(goalsfile);
+        try:
+            i = temp.index(str(ctx.author.id));
+            splitmess = ctx.message.content.split(); # splits string by white spaces
+            #for(word in splitmess): # ignores first word in message because we know it's just the command and is unneeded.
+            #    if word == ""; # checks to see if any additional parameters were passed.
+            mess = kvGetValue(goalsfile, ctx.author.id); # Get user's goals
+            mess = mess.split("; "); # Separate goals
+            for goal in mess:
+                # This space is used to sort through the separated goals to see if any are tagged
+                    # This means any that are tagged for completion, past tasks, recurring tasks, etc.
+                await ctx.send(goal);
+        except ValueError:
+            await ctx.send("You aren't on the list");
 
 
 def setup(bot):
