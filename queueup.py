@@ -206,7 +206,7 @@ class QueueCog(commands.Cog):
     async def list(self, ctx):
         
         users = kvGetKeys(queuefile)
-        if (users == ['']):
+        if (users == []):
             await ctx.send("There is no one on the list currently.")
             return
         interests = kvGetValues(queuefile)
@@ -295,7 +295,7 @@ class QueueCog(commands.Cog):
         #print(role.members)
             
     
-    @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
+    @commands.command(aliases=['pairforce'],hidden=True) #pair must be aliased because we have a function named pair already
     @commands.has_permissions(ban_members=True)
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
@@ -358,18 +358,30 @@ class QueueCog(commands.Cog):
         print("[queueUpdate] is running.")
     
     
-    
-    async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
+    @commands.command()
+    async def pair(self, ctx, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
         #Create channel
         #Ping the new role or the users
         #Send a final DM to the group's dms
+        
+        def checkP(reaction, user):
+            return user == ctx.author and str(reaction.emoji) == '👍'
+
         print("user1 is {}".format(user1))
         user1obj = await self.bot.fetch_user(user1)
         user2obj = await self.bot.fetch_user(user2)
-        await user1obj.send("You've been paired with {}!".format(user2obj.name))
-        await user2obj.send("You've been paired with {}!".format(user1obj.name))
+        await user1obj.send("You are being paired with {}!".format(user2obj.name))
+
+        await user2obj.send("If you want to pair with {}, react to this message!".format(user1obj.name))
+        
+        try:
+            reaction, user = await self.bot.wait_for('reaction_add', timeout=6000.0, check=checkP)
+        except asyncio.TimeoutError:
+            await message.edit(content="Timeout, took to long to respond. Pairing aborted.")
+            return
+        
         
         print("[pair] users are into {}".format(interests))
         #Still need to make channel and role ties
