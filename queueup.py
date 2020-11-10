@@ -91,7 +91,7 @@ class QueueCog(commands.Cog):
                 userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
                     interests = kvGetValue(queuefile, userListing)
-                    await self.pair(ctx.author.id, ctx.message.mentions[0].id, interests)
+                    await self.pair(ctx.author.id,  ctx.message.mentions[0].id, interests)
                     return
                 else:
                     await ctx.send("You gotta ask for permission before wanting to join with people, buddy.")
@@ -295,7 +295,7 @@ class QueueCog(commands.Cog):
         #print(role.members)
             
     
-    @commands.command(aliases=['pairforce'],hidden=True) #pair must be aliased because we have a function named pair already
+    @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     @commands.has_permissions(ban_members=True)
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
@@ -311,18 +311,36 @@ class QueueCog(commands.Cog):
         #User1 and User2 must not both be the message.author.id
         #Execute pair on user1 and user2
         
+        def checkP(reaction, user):
+            return user == ctx.author and str(reaction.emoji) == '👍'
         
         if(user2==None): #Author and...
             if(user1.id != ctx.author.id and await self.userInServer(user1.id,self.homeserver) == True): #User not caller and in server
-                await self.pair(ctx.author.id,user1.id,removeFromQueue=False)
+                print("user1 is {}".format(user1))
+                print("This print statement occurs when user2==None")
+                user2=ctx.author.id
+                user1obj = await self.bot.fetch_user(user1)
+                user2obj = await self.bot.fetch_user(user2)
+                await user1obj.send("You are being paired with {}!".format(user2obj.name))
+
+                await user2obj.send("If you want to pair with {}, react to this message!".format(user1obj.name))
+                
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=6000.0, check=checkP)
+                except asyncio.TimeoutError:
+                    await message.edit(content="Timeout, took to long to respond. Pairing aborted.")
+                    return
+                """await self.pair(ctx.author.id,user1.id,removeFromQueue=False)
                 await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(ctx.author.name,user1.name))
-                return
+                return"""
         else:#User 1 and user 2
             if((user1.id == ctx.author.id and user2.id == ctx.author.id) == False and user1.id != user2.id): #Both users are different and also not both the owner
                 if(await self.userInServer(user1.id,self.homeserver) and await self.userInServer(user2.id,self.homeserver)): #Both users in the server
+                    print("this appears if user2!=None")
                     await self.pair(user1.id,user2.id,removeFromQueue=False)
                     await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(user1.name,user2.name))
-                    return
+                    return    
+                    
         await ctx.send("Something went wrong.")
         
         
@@ -358,30 +376,18 @@ class QueueCog(commands.Cog):
         print("[queueUpdate] is running.")
     
     
-    @commands.command()
-    async def pair(self, ctx, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
+    
+    """ async def pair(self, ctx, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
         #Create channel
         #Ping the new role or the users
         #Send a final DM to the group's dms
         
-        def checkP(reaction, user):
-            return user == ctx.author and str(reaction.emoji) == '👍'
+        
 
+        
         print("user1 is {}".format(user1))
-        user1obj = await self.bot.fetch_user(user1)
-        user2obj = await self.bot.fetch_user(user2)
-        await user1obj.send("You are being paired with {}!".format(user2obj.name))
-
-        await user2obj.send("If you want to pair with {}, react to this message!".format(user1obj.name))
-        
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=6000.0, check=checkP)
-        except asyncio.TimeoutError:
-            await message.edit(content="Timeout, took to long to respond. Pairing aborted.")
-            return
-        
         
         print("[pair] users are into {}".format(interests))
         #Still need to make channel and role ties
@@ -392,8 +398,28 @@ class QueueCog(commands.Cog):
             kvRemoveKey(queuefile,user1)
             kvRemoveKey(queuefile,user2)
     
-    
-   
+   """ 
+    async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
+        
+        #Create role
+        #Create channel
+        #Ping the new role or the users
+        #Send a final DM to the group's dms
+        
+
+        print("user1 is {}".format(user1))
+       
+        
+        
+        print("[pair] users are into {}".format(interests))
+        #Still need to make channel and role ties
+        
+        await self.giveWorkspace(user1,user2,interests) #Create role and channel
+        
+        if(removeFromQueue==True):
+            kvRemoveKey(queuefile,user1)
+            kvRemoveKey(queuefile,user2)
+
     
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
