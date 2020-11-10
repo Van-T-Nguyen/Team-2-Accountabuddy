@@ -435,7 +435,28 @@ class QueueCog(commands.Cog):
         home = self.bot.get_guild(guild)
         await home.delete_role(name="Accountabud")"""
 
-
+    async def changecolor(ctx, role: discord.Role, *, color):
+       if role not in ctx.message.author.roles:
+        await bot.say("You do not have the role " + role.name)
+        return
+        listofColors = {
+                        "dark green" : discord.Color.dark_green(),
+                        "blue" : discord.Color.blue(),
+                        "teal" : discord.Color.teal(),
+                        "dark teal" : discord.Color.dark_teal(),
+                        "green" : discord.Color.green(),
+                        "dark green" : discord.Color.dark_green(),
+                        "purple" : discord.Color.purple(),
+                        "dark purple" : discord.Color.dark_purple(),
+                        "gold" : discord.Color.gold(),
+                        "orange" : discord.Color.orange(),
+                        "red" : discord.Color.red(),
+                        "dark red" : discord.Color.dark_red()
+                      } 
+        if color in listofColors:
+            await client.edit_role(server, role, color=listOfColors[color])
+   #called by !changecolor @role dark green
+   
 
 
 
