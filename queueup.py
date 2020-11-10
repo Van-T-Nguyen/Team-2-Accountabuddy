@@ -91,7 +91,7 @@ class QueueCog(commands.Cog):
                 userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
                     interests = kvGetValue(queuefile, userListing)
-                    await self.pair(ctx.author.id,  ctx.message.mentions[0].id, interests)
+                    await self.forcePair(ctx, ctx.message.mentions[0])
                     return
                 else:
                     await ctx.send("You gotta ask for permission before wanting to join with people, buddy.")
@@ -312,27 +312,29 @@ class QueueCog(commands.Cog):
         #Execute pair on user1 and user2
         
         def checkP(reaction, user):
-            return user == ctx.author and str(reaction.emoji) == '👍'
-        
+            return user.id == user2obj.id and str(reaction.emoji) == '👍'
         if(user2==None): #Author and...
             if(user1.id != ctx.author.id and await self.userInServer(user1.id,self.homeserver) == True): #User not caller and in server
                 print("user1 is {}".format(user1))
                 print("This print statement occurs when user2==None")
-                user2=ctx.author.id
-                user1obj = await self.bot.fetch_user(user1)
-                user2obj = await self.bot.fetch_user(user2)
-                await user1obj.send("You are being paired with {}!".format(user2obj.name))
+                user2=ctx.author
+                user1obj = ctx.author
+                user2obj = user1
+                await user1obj.send("Waiting for a reply from {}!".format(user2obj.name))
 
-                await user2obj.send("If you want to pair with {}, react to this message!".format(user1obj.name))
+                mesg = await user2obj.send("If you want to pair with {}, click the '👍'!".format(user1obj.name))
+
+                await mesg.add_reaction('👍')
                 
                 try:
-                    reaction, user = await self.bot.wait_for('reaction_add', timeout=6000.0, check=checkP)
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=checkP)
+                    print("You have gotten to the bit where it waits for the reaction")
                 except asyncio.TimeoutError:
-                    await message.edit(content="Timeout, took to long to respond. Pairing aborted.")
+                    await mesg.edit(content="Timeout, took to long to respond. Pairing aborted.")
                     return
-                """await self.pair(ctx.author.id,user1.id,removeFromQueue=False)
-                await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(ctx.author.name,user1.name))
-                return"""
+                else:
+                    await self.pair(user1.id,user2.id,removeFromQueue=True)
+                    return
         else:#User 1 and user 2
             if((user1.id == ctx.author.id and user2.id == ctx.author.id) == False and user1.id != user2.id): #Both users are different and also not both the owner
                 if(await self.userInServer(user1.id,self.homeserver) and await self.userInServer(user2.id,self.homeserver)): #Both users in the server

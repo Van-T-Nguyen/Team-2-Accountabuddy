@@ -12,7 +12,7 @@ os.environ['DISPLAY'] = ':0' #linux req'd
 
 textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '$'  #Changeable prefix for calling the bot.
+pfix = '%'  #Changeable prefix for calling the bot.
 
 intents = discord.Intents.all()
 
