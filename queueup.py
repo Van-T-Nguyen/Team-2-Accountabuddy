@@ -435,27 +435,41 @@ class QueueCog(commands.Cog):
         home = self.bot.get_guild(guild)
         await home.delete_role(name="Accountabud")"""
 
-    async def changecolor(ctx, role: discord.Role, *, color):
-       if role not in ctx.message.author.roles:
-        await bot.say("You do not have the role " + role.name)
-        return
-        listofColors = {
-                        "dark green" : discord.Color.dark_green(),
+    #creates functionality for users to change their role color
+    @commands.command()
+    async def changecolor(self, ctx,*, color):
+        listOfColors = {
                         "blue" : discord.Color.blue(),
                         "teal" : discord.Color.teal(),
-                        "dark teal" : discord.Color.dark_teal(),
+                        "darkteal" : discord.Color.dark_teal(),
                         "green" : discord.Color.green(),
-                        "dark green" : discord.Color.dark_green(),
+                        "darkgreen" : discord.Color.dark_green(),
                         "purple" : discord.Color.purple(),
-                        "dark purple" : discord.Color.dark_purple(),
+                        "darkpurple" : discord.Color.dark_purple(),
                         "gold" : discord.Color.gold(),
                         "orange" : discord.Color.orange(),
                         "red" : discord.Color.red(),
-                        "dark red" : discord.Color.dark_red()
+                        "darkred" : discord.Color.dark_red()
                       } 
-        if color in listofColors:
-            await client.edit_role(server, role, color=listOfColors[color])
-   #called by !changecolor @role dark green
+        temp=ctx.message.content.split()
+        role=""
+        color=""
+        for word in temp: 
+            if "<@&" in word:
+                for letter in word:
+                    if letter.isalnum():
+                        role= role + letter
+            elif bot_config.pfix not in word:
+                color = color + word
+        for x in ctx.guild.roles:
+            if x.id == int(role): 
+                if color in listOfColors.keys():
+                    role = ctx.message.guild.get_role(int(role))
+                    await role.edit(color=listOfColors[color])   
+                    return   
+        await ctx.send("You do not have that role")
+    
+    #called by !changecolor @role dark green
    
 
 
