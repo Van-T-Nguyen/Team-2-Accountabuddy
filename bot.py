@@ -8,6 +8,8 @@ import psutil
 import os
 import random
 
+intents = discord.Intents.all()
+
 os.environ['DISPLAY'] = ':0' #linux req'd
 
 textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
@@ -67,7 +69,7 @@ def get_prefix(bot, msg):
 
 desc = '''AccountaBuddy'''
 
-bot = commands.Bot(command_prefix=get_prefix,description=desc)
+bot = commands.Bot(command_prefix=get_prefix,description=desc, intents=intents)
 
 
 @bot.event
@@ -119,6 +121,13 @@ async def on_message(message):
         #return
     
     await bot.process_commands(message)
+
+'''
+@bot.event
+async def on_guild_channel_create(channel):
+	await channel.send("test")
+	sendDaily.dailyMsg.start()
+'''
 
 @bot.event
 async def on_command_error(ctx, error):
