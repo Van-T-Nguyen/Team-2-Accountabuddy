@@ -20,6 +20,7 @@ class sendDaily(commands.Cog):
         self.combo = 0
         self.ctx = None
 
+
     @commands.command()
     async def daily(self, ctx, numDays):
         await ctx.send("Attempting to send messages every day")
@@ -35,7 +36,7 @@ class sendDaily(commands.Cog):
         await self.ctx.send("Admin stop")
         self.dailyMsg.stop()
 
-    
+   
 
     #@tasks.loop(minutes=1)
     @tasks.loop(seconds=30)
@@ -46,6 +47,11 @@ class sendDaily(commands.Cog):
         #	self.dailyMsg.stop()
         self.day = self.day + 1
 
+	@commands.Cog.listener()
+	async def on_guild_channel_create(self, channel):
+		await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
+		self.ctx = channel
+		self.dailyMsg.start()
 
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel):
@@ -78,6 +84,16 @@ class sendDaily(commands.Cog):
 
     async def comboMsg(self, ctx):
         await ctx.send("Thanks for checking in. Current score: {}".format(self.combo))
+
+	@commands.Cog.listener()
+	async def on_reaction_add(self, react, user):
+		numReact = react.count
+		if (numReact > 2 and react.emoji ==  '\U0001F44B'):
+			self.combo = self.combo + 1
+			await self.comboMsg(self.ctx)
+
+	async def comboMsg(self, ctx):
+		await ctx.send("Thanks for checking in. Current score: {}".format(self.combo))
 
 def setup(bot):
     bot.add_cog(sendDaily(bot))
