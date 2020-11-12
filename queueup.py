@@ -610,8 +610,6 @@ class QueueCog(commands.Cog):
                 await ctx.send(goal);
         except ValueError:
             await ctx.send("You aren't on the list");
-
-        ctx.send(interestlist);
     
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
