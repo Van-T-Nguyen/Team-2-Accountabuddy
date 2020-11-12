@@ -59,7 +59,7 @@ class QueueCog(commands.Cog):
     @commands.command()
     async def join(self,ctx):
         """Initiate joining of the queue."""
-        
+        #slight change here 
         #Check if in the home server
         #if not...
         #...Invite and bail.
@@ -76,10 +76,15 @@ class QueueCog(commands.Cog):
             return #Abort
 
         #If user is in a group, exit
-        for x in ctx.me.roles:
+        for x in ctx.author.roles:
             if x.name == "Accountabuds":
                 await ctx.send("You're already in a stable relationship. Don't do this\n")
                 return      
+
+        if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
+            await ctx.send("You're already in a queue!\n")
+            await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
+            return
 
         if (ctx.message.mentions != []): #If user mentioned someone
             if (ctx.message.mentions[0] == ctx.author): #Only reads first mention
@@ -87,25 +92,15 @@ class QueueCog(commands.Cog):
                 await ctx.send("Try {}join without arguments.\n".format(bot_config.pfix))
                 return
 
-            else:                    
+            else:
                 userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
                     interests = kvGetValue(queuefile, userListing)
-                    await self.pair(ctx.author.id, ctx.message.mentions[0].id, interests)
+                    await self.forcePair(ctx, ctx.message.mentions[0])
                     return
                 else:
                     await ctx.send("You gotta ask for permission before wanting to join with people, buddy.")
-                    if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
-                        await ctx.send("We're not putting you on the list twice, so seeya.")
-                        return
-                    else:
-                        await ctx.send("We'll put you on the list instead...\n\n")
-        else: #They didn't mention anyone
-            if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
-            
-                await ctx.send("You can't pair up with yourself!\n")
-                await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
-                return
+                    await ctx.send("We'll put you on the list instead...\n\n")
 
         #Normal joining if they pass all the checks.
 
@@ -319,7 +314,6 @@ class QueueCog(commands.Cog):
 
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
-    @commands.has_permissions(ban_members=True)
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
         #Curious how the pairs handle multiple users. Hopefully not bad.
@@ -334,18 +328,38 @@ class QueueCog(commands.Cog):
         #User1 and User2 must not both be the message.author.id
         #Execute pair on user1 and user2
         
-        
+        def checkP(reaction, user):
+            return user.id == user2obj.id and str(reaction.emoji) == '👍'
         if(user2==None): #Author and...
             if(user1.id != ctx.author.id and await self.userInServer(user1.id,self.homeserver) == True): #User not caller and in server
-                await self.pair(ctx.author.id,user1.id,removeFromQueue=False)
-                await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(ctx.author.name,user1.name))
-                return
+                print("user1 is {}".format(user1))
+                print("This print statement occurs when user2==None")
+                user2=ctx.author
+                user1obj = ctx.author
+                user2obj = user1
+                await ctx.send("Waiting for a reply from {}!".format(user2obj.name))
+
+                mesg = await user2obj.send("If you want to pair with {}, click the '👍'!".format(user1obj.name))
+
+                await mesg.add_reaction('👍')
+                
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=checkP)
+                    print("You have gotten to the bit where it waits for the reaction")
+                except asyncio.TimeoutError:
+                    await mesg.edit(content="Timeout, took to long to respond. Pairing aborted.")
+                    return
+                else:
+                    await self.pair(user1.id,user2.id,removeFromQueue=True)
+                    return
         else:#User 1 and user 2
             if((user1.id == ctx.author.id and user2.id == ctx.author.id) == False and user1.id != user2.id): #Both users are different and also not both the owner
                 if(await self.userInServer(user1.id,self.homeserver) and await self.userInServer(user2.id,self.homeserver)): #Both users in the server
+                    print("this appears if user2!=None")
                     await self.pair(user1.id,user2.id,removeFromQueue=False)
                     await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(user1.name,user2.name))
-                    return
+                    return    
+                    
         await ctx.send("Something went wrong.")
         
         
@@ -402,7 +416,7 @@ class QueueCog(commands.Cog):
         return text
 
     
-    async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
+    async def pair(self, user1: int, user2:int, interests:list = ['unknown'], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
         #Create channel
@@ -427,7 +441,7 @@ class QueueCog(commands.Cog):
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
         #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
         
-        interests = list(interests)
+        #interests = list(interests)
 
         home = self.bot.get_guild(self.homeserver)
         channel_name = home.get_member(int(user1)).name + "-" + home.get_member(int(user2)).name 
@@ -440,7 +454,10 @@ class QueueCog(commands.Cog):
             interestsline = interests+"."
         else:
             if(len(interests)==1):
-                interestsline = interests[0]+'.'
+                try:
+                    interestsline = interests[0]+'.'
+                except Exception as e:
+                    interestsline = "."
             elif(len(interests) > 1):
                 for i, thing in enumerate(interests): #Iterate with an integer
                     if((i+1) == len(interests)): #Last entry
