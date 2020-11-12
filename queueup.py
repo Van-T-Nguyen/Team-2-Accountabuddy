@@ -522,6 +522,43 @@ class QueueCog(commands.Cog):
         home = self.bot.get_guild(guild)
         await home.delete_role(name="Accountabud")"""
 
+    #creates functionality for users to change their role color
+    @commands.command()
+    async def changecolor(self, ctx,*, color):
+        listOfColors = {
+                        "blue" : discord.Color.blue(),
+                        "teal" : discord.Color.teal(),
+                        "darkteal" : discord.Color.dark_teal(),
+                        "green" : discord.Color.green(),
+                        "darkgreen" : discord.Color.dark_green(),
+                        "purple" : discord.Color.purple(),
+                        "darkpurple" : discord.Color.dark_purple(),
+                        "gold" : discord.Color.gold(),
+                        "orange" : discord.Color.orange(),
+                        "red" : discord.Color.red(),
+                        "darkred" : discord.Color.dark_red()
+                      } 
+        temp=ctx.message.content.split()
+        role=""
+        color=""
+        for word in temp: 
+            if "<@&" in word:
+                for letter in word:
+                    if letter.isalnum():
+                        role= role + letter
+            elif bot_config.pfix not in word:
+                color = color + word
+        for x in ctx.guild.roles:
+            if x.id == int(role): 
+                if color in listOfColors.keys():
+                    role = ctx.message.guild.get_role(int(role))
+                    await role.edit(color=listOfColors[color])   
+                    return   
+        await ctx.send("You do not have that role")
+    
+    #called by !changecolor @role dark green
+   
+
     @commands.command()
     async def li(self, ctx):
         """
@@ -539,7 +576,6 @@ class QueueCog(commands.Cog):
     async def on_voice_state_update(self, member, before, after):
         if (after.channel == None and before.channel.name.lower() != "yellbox"):
             await before.channel.delete()
-
 
 def setup(bot):
     bot.add_cog(QueueCog(bot))
