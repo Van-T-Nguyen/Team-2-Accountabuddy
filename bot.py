@@ -12,7 +12,9 @@ os.environ['DISPLAY'] = ':0' #linux req'd
 
 textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '/'  #Changeable prefix for calling the bot.
+pfix = '!v'  #Changeable prefix for calling the bot.
+
+intents = discord.Intents.all()
 
 startup_extensions = ['blankcog','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
@@ -67,7 +69,7 @@ def get_prefix(bot, msg):
 
 desc = '''AccountaBuddy'''
 
-bot = commands.Bot(command_prefix=get_prefix,description=desc)
+bot = commands.Bot(command_prefix=get_prefix,description=desc, intents=intents)
 
 
 @bot.event
@@ -76,7 +78,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    await bot.change_presence(activity=discord.Game(name=(pfix+'help')))
+    #await bot.change_presence(activity=discord.Game(name=(pfix+'help')))
     #bot.remove_command('help')
     if __name__ == '__main__':
         for extension in startup_extensions:
