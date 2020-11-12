@@ -1,7 +1,22 @@
 Jogging=====Physical Sports & Athletics$Outdoor Activities
 Frisbee Golf=====Physical Sports$Competitive Sports$Outdoor Activities
 Study Habits=====Education$Habits
-Food=====Pizza$Burgers
+Pizza=====Food
+Burgers=====Food
 Save Money=====Finances$Habits
 Meditate=====Concentration$Habits
 Reading=====Education$Habits
+<<<<<<< Updated upstream
+Learn a Language=====Education
+Sleep=====Habits$Health
+Learn to Cook=====Education$Habits
+Running=====Physical Sports & Athletics$Outdoor Activites$Health
+Improve Concentration=====Concentration$Habits$Health
+Social Media Detox=====Health$Habits
+Earn More Money=====Habits$Finances
+Practice Guitar=====Education
+Dieting=====Food$Habits
+=======
+Dieting=====Food$Habits
+Accountabuddy=====Senior Project$Programming
+>>>>>>> Stashed changes
