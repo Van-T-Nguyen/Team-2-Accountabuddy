@@ -10,6 +10,7 @@ from discord.ext.commands import has_permissions, MissingPermissions
 import random
 
 interestsfile = "interests.txt"
+leaderboardfile = "leaderboard.txt"
 datadir = "queue/"
 queuefile = datadir + "userqueue.txt"
 channelpairs = datadir + "channelspairs.txt"
@@ -378,7 +379,26 @@ class QueueCog(commands.Cog):
         
         print("[queueUpdate] is running.")
     
-    
+    #TODO: FINISH leaderboard
+    @commands.command()
+    async def leaderboard(self,ctx):
+        #prints the leaderboard
+
+        leaderboard = kvMakeList(leaderboardfile)
+        #this kvMakeList function comes from keyvaluemanagement.py.
+        
+        leaderboardlist = ""
+        for score in leaderboard:
+            leaderboardlist += score+'\n'
+
+        await ctx.send(self.leaderboardText(leaderboardlist))
+
+    #TODO: STUB FUNCTION
+    def leaderboardText(self, leaderboardlist):
+        text = leaderboardlist
+
+        return text
+
     
     async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
