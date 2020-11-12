@@ -11,6 +11,7 @@ import random
 
 interestsfile = "interests.txt"
 goalsfile = "goals.txt"
+leaderboardfile = "leaderboard.txt"
 datadir = "queue/"
 queuefile = datadir + "userqueue.txt"
 channelpairs = datadir + "channelspairs.txt"
@@ -48,9 +49,12 @@ class QueueCog(commands.Cog):
         print("Failed loop: Members:\n{}\n\nGuild:\n{}".format(members,guild))
         return False
     
-    @commands.command()
-    async def join(self,ctx):
-        """Initiate joining of the queue."""
+    async def find_role(self, ctx):
+        for x in ctx.author.roles:
+            if x.name == "Accountabuds":
+                return x
+        
+        return None
         
     @commands.command()
     async def join(self,ctx):
@@ -72,15 +76,10 @@ class QueueCog(commands.Cog):
             return #Abort
 
         #If user is in a group, exit
-        for x in ctx.author.roles:
+        for x in ctx.me.roles:
             if x.name == "Accountabuds":
                 await ctx.send("You're already in a stable relationship. Don't do this\n")
                 return      
-
-        if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
-            await ctx.send("You can't pair up with yourself!\n")
-            await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
-            return
 
         if (ctx.message.mentions != []): #If user mentioned someone
             if (ctx.message.mentions[0] == ctx.author): #Only reads first mention
@@ -88,7 +87,7 @@ class QueueCog(commands.Cog):
                 await ctx.send("Try {}join without arguments.\n".format(bot_config.pfix))
                 return
 
-            else:
+            else:                    
                 userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
                     interests = kvGetValue(queuefile, userListing)
@@ -96,9 +95,19 @@ class QueueCog(commands.Cog):
                     return
                 else:
                     await ctx.send("You gotta ask for permission before wanting to join with people, buddy.")
-                    await ctx.send("We'll put you on the list instead...\n\n")
+                    if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
+                        await ctx.send("We're not putting you on the list twice, so seeya.")
+                        return
+                    else:
+                        await ctx.send("We'll put you on the list instead...\n\n")
+        else: #They didn't mention anyone
+            if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
+            
+                await ctx.send("You can't pair up with yourself!\n")
+                await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
+                return
 
-    #If user is not in a group, on the queue, is a member, and didn't request someone, join normally.
+        #Normal joining if they pass all the checks.
 
         
 
@@ -207,7 +216,7 @@ class QueueCog(commands.Cog):
     async def list(self, ctx):
         
         users = kvGetKeys(queuefile)
-        if (users == ['']):
+        if (users == []):
             await ctx.send("There is no one on the list currently.")
             return
         interests = kvGetValues(queuefile)
@@ -262,39 +271,52 @@ class QueueCog(commands.Cog):
         await self.queueUpdate()
         return 0
     
-    @commands.command()
-    async def abandon(self, ctx):
-        #Let's a user quit their current group.
-
-        #paired = False
-
-        #Makes it so that the specific channel to be deleted is easy to find.
-        if (ctx.channel.name != "meeting-room"):
-            await ctx.send("You can only abandon groups in your meeting room!")
-            return
-
-        for x in ctx.author.roles:
-            if x.name == "Accountabuds":
-                role = x
-                #paired = True
-
-        """
-        #If they aren't currently paired with someone, quit.
-        if(paired == False):
-            await ctx.send("Can't really abandon something you're not in, can you?")
-            return
-        """
-
+    async def delete_role(self, ctx):
+        #Finds the role, deletes it, and sends everyone with the partner a farewell message
+        role = await self.find_role(ctx)
+        
         for x in role.members:
             await x.create_dm()
             await x.dm_channel.send("I hope it was a fruitful endeavor.")
         
-        await ctx.channel.delete()
         print(role.permissions)
-        #print(ctx.permissions_in("meeting-room"))
         await role.delete()
-        #print(role.members)
-            
+        return
+
+    @commands.command()
+    async def abandon(self, ctx):
+        #Let's a user quit their current group.
+
+        #Makes it so that the specific channel to be deleted is easy to find.
+        if (ctx.channel.category.name.lower() != "pairs"):
+            await ctx.send("You can only abandon groups in your meeting room!")
+            return
+
+        await self.delete_role(ctx)
+
+        await ctx.channel.delete()
+
+    @commands.command()
+    async def talk(self, ctx):
+        #Lets a user make a voice channel
+
+        #Makes it so that the VC can only be made in a pair room
+        if (ctx.channel.category.name.lower() != "pairs"):
+            await ctx.send("You can only create talk rooms within your own room!")
+            return
+        
+        home = self.bot.get_guild(self.homeserver)
+        category = discord.utils.get(home.categories, name="pairs")
+        
+        #Prevents two chat rooms
+        for x in category.voice_channels:
+            if (x.name == ctx.channel.name):
+                await ctx.send("You can't create two talk rooms!")
+                return
+
+        role = await self.find_role(ctx)
+        await self.talk_room(role.id, ctx.channel.name)
+
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     @commands.has_permissions(ban_members=True)
@@ -358,7 +380,26 @@ class QueueCog(commands.Cog):
         
         print("[queueUpdate] is running.")
     
-    
+    #TODO: FINISH leaderboard
+    @commands.command()
+    async def leaderboard(self,ctx):
+        #prints the leaderboard
+
+        leaderboard = kvMakeList(leaderboardfile)
+        #this kvMakeList function comes from keyvaluemanagement.py.
+        
+        leaderboardlist = ""
+        for score in leaderboard:
+            leaderboardlist += score+'\n'
+
+        await ctx.send(self.leaderboardText(leaderboardlist))
+
+    #TODO: STUB FUNCTION
+    def leaderboardText(self, leaderboardlist):
+        text = leaderboardlist
+
+        return text
+
     
     async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
@@ -381,34 +422,34 @@ class QueueCog(commands.Cog):
             kvRemoveKey(queuefile,user1)
             kvRemoveKey(queuefile,user2)
     
-    
-   
-    
-    
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
         #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
         
-        interests = list(interests)
-        
+        #interests = list(interests)
+
+        home = self.bot.get_guild(self.homeserver)
+        channel_name = home.get_member(int(user1)).name + "-" + home.get_member(int(user2)).name 
+
         role = await self.makeRole(users=[user1,user2]) #Fetch role and give it to the two peeps
-        channel = await self.makeRoom(role.id)
+        channel = await self.makeRoom(role.id, channel_name)
         
         interestsline = "" #Format current interests given
-        if(len(interests)==1):
-            interestsline = interests[0]+'.'
-        elif(len(interests) > 1):
-            for i, thing in enumerate(interests): #Iterate with an integer
-                if((i+1) == len(interests)): #Last entry
-                    interestsline += " and {}.".format(thing)
-                elif((i+2) == len(interests)): #Second to last entry
-                    interestsline += "{} ".format(thing)
-                else: #Anything else (3+ entries)
-                    interestsline += "{}, ".format(thing)
+        if(isinstance(interests,str)): #String, so just add.
+            interestsline = interests+"."
+        else:
+            if(len(interests)==1):
+                interestsline = interests[0]+'.'
+            elif(len(interests) > 1):
+                for i, thing in enumerate(interests): #Iterate with an integer
+                    if((i+1) == len(interests)): #Last entry
+                        interestsline += " and {}.".format(thing)
+                    elif((i+2) == len(interests)): #Second to last entry
+                        interestsline += "{} ".format(thing)
+                    else: #Anything else (3+ entries)
+                        interestsline += "{}, ".format(thing)
         
         await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! When you're ready to set a goal for eachother, do **{}goal <goal>** and I'll help keep you two together for that goal.\nIf you want to unpair, use **{}abandon** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
-        
-        kvSetValue(channelpairs,channel.id,role.id) #Save in file
     
     
     #TODO: FINISH SELF.HELPTEXT()
@@ -448,24 +489,76 @@ class QueueCog(commands.Cog):
         return role
 
     #Creates a text channel only users with a certain role can access
-    async def makeRoom(self, roleid: int):
+    async def makeRoom(self, roleid: int, name = "meeting room"):
         home = self.bot.get_guild(self.homeserver)
-        role = home.get_role(roleid)
         category = discord.utils.get(home.categories, name="pairs")
         default = home.default_role
-        overwrite = discord.PermissionOverwrite()
-        overwrite.send_messages = True
-        overwrite.read_messages = True
-        channel = await category.create_text_channel('meeting room')
+        role = home.get_role(roleid)
+        #overwrite = discord.PermissionOverwrite()
+        #overwrite.send_messages = True
+        #overwrite.read_messages = True
+        channel = await category.create_text_channel(name)
         await channel.edit(sync_permissions=False)
         await channel.set_permissions(role, read_messages=True, send_messages=True)
         await channel.set_permissions(default, read_messages=False, send_messages=False)
+        return channel
+
+    #Creates a voice channel only users with a certain role can access
+    async def talk_room(self, roleid: int, name = "chat room"):
+        home = self.bot.get_guild(self.homeserver)
+        category = discord.utils.get(home.categories, name="pairs")
+        default = home.default_role
+        role = home.get_role(roleid)
+        overwrite = discord.PermissionOverwrite()
+        overwrite.send_messages = True
+        overwrite.read_messages = True
+        channel = await category.create_voice_channel(name)
+        await channel.edit(sync_permissions=False)
+        await channel.set_permissions(role, read_messages=True, send_messages=True, connect=True)
+        await channel.set_permissions(default, read_messages=False, send_messages=False, connect=False)
         return channel
 
     """async def deleteRole(self):
         guild = bot_config.Home_Server
         home = self.bot.get_guild(guild)
         await home.delete_role(name="Accountabud")"""
+
+    #creates functionality for users to change their role color
+    @commands.command()
+    async def changecolor(self, ctx,*, color):
+        listOfColors = {
+                        "blue" : discord.Color.blue(),
+                        "teal" : discord.Color.teal(),
+                        "darkteal" : discord.Color.dark_teal(),
+                        "green" : discord.Color.green(),
+                        "darkgreen" : discord.Color.dark_green(),
+                        "purple" : discord.Color.purple(),
+                        "darkpurple" : discord.Color.dark_purple(),
+                        "gold" : discord.Color.gold(),
+                        "orange" : discord.Color.orange(),
+                        "red" : discord.Color.red(),
+                        "darkred" : discord.Color.dark_red()
+                      } 
+        temp=ctx.message.content.split()
+        role=""
+        color=""
+        for word in temp: 
+            if "<@&" in word:
+                for letter in word:
+                    if letter.isalnum():
+                        role= role + letter
+            elif bot_config.pfix not in word:
+                color = color + word
+        for x in ctx.guild.roles:
+            if x.id == int(role): 
+                if color in listOfColors.keys():
+                    role = ctx.message.guild.get_role(int(role))
+                    await role.edit(color=listOfColors[color])   
+                    return   
+        await ctx.send("You do not have that role")
+    
+    #called by !changecolor @role dark green
+   
 
     @commands.command()
     async def li(self, ctx):
@@ -518,6 +611,12 @@ class QueueCog(commands.Cog):
         except ValueError:
             await ctx.send("You aren't on the list");
 
+        ctx.send(interestlist);
+    
+    @commands.Cog.listener()
+    async def on_voice_state_update(self, member, before, after):
+        if (after.channel == None and before.channel.name.lower() != "yellbox"):
+            await before.channel.delete()
 
 def setup(bot):
     bot.add_cog(QueueCog(bot))
