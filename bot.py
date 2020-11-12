@@ -12,7 +12,7 @@ os.environ['DISPLAY'] = ':0' #linux req'd
 
 textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '!v'  #Changeable prefix for calling the bot.
+pfix = bot_config.pfix  #Changeable prefix for calling the bot.
 
 intents = discord.Intents.all()
 
@@ -39,6 +39,8 @@ def removeFromList(path, key):
     with open(path, "w") as f:
         for x in list:
             if str(key) in x:
+                pass
+            elif str(key) not in x:
                 f.write(x + "\n")
             else:
                 pass
@@ -51,7 +53,7 @@ def isOnList(path,item,val):
     i = 0;
     #print("{} in {}".format(str(item),outlist))
     for thing in outlist:
-        i = i + 1
+        i = i + 1;
         if( str(item) == thing):
             #print("{} is {}".format(str(item),thing))
             if(val):

@@ -374,6 +374,7 @@ class QueueCog(commands.Cog):
                     matches = set(thisinterest) & set(otherinterest)
                     if(len(matches) > 0): #Has a match at all, not complicated
                         #Pair 'em
+                        print("[queueUpdate] matches are: {}".format(matches))
                         await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
                         print("[queueUpdate] Paired {} and {}!!".format(userid,otherid))
                         return await self.queueUpdate() #Start from the beginning because our array status has changed.
@@ -426,7 +427,7 @@ class QueueCog(commands.Cog):
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
         #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
         
-        #interests = list(interests)
+        interests = list(interests)
 
         home = self.bot.get_guild(self.homeserver)
         channel_name = home.get_member(int(user1)).name + "-" + home.get_member(int(user2)).name 
@@ -610,6 +611,8 @@ class QueueCog(commands.Cog):
                 await ctx.send(goal);
         except ValueError:
             await ctx.send("You aren't on the list");
+
+        ctx.send(interestlist);
     
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):
