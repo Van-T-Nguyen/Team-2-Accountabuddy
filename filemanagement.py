@@ -31,7 +31,6 @@ def makeList(path):
 def getEntry(path):
     """Gets a random entry from this text file"""
     l = makeList(path)
-    return random.choice(l)
 
 def addToList(path,item):
     """Adds item to path. Does not check if it's already present."""
@@ -47,7 +46,6 @@ def removeFromList(path, key):
     with open(path, "w") as f:
         for x in list:
             if str(key) in x:
-            elif str(key) not in x:
                 f.write(x + "\n")
             else:
                 pass

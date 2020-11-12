@@ -39,7 +39,6 @@ def removeFromList(path, key):
     with open(path, "w") as f:
         for x in list:
             if str(key) in x:
-            elif str(key) not in x:
                 f.write(x + "\n")
             else:
                 pass
@@ -52,7 +51,7 @@ def isOnList(path,item,val):
     i = 0;
     #print("{} in {}".format(str(item),outlist))
     for thing in outlist:
-        i = i + 1;
+        i = i + 1
         if( str(item) == thing):
             #print("{} is {}".format(str(item),thing))
             if(val):
