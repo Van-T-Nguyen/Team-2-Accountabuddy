@@ -523,6 +523,8 @@ class QueueCog(commands.Cog):
         await home.delete_role(name="Accountabud")"""
 
     #creates functionality for users to change their role color
+    #called by !changecolor @role dark green
+   
     @commands.command()
     async def changecolor(self, ctx,*, color):
         listOfColors = {
@@ -548,17 +550,46 @@ class QueueCog(commands.Cog):
                         role= role + letter
             elif bot_config.pfix not in word:
                 color = color + word
-        for x in ctx.guild.roles:
-            if x.id == int(role): 
-                if color in listOfColors.keys():
-                    role = ctx.message.guild.get_role(int(role))
-                    await role.edit(color=listOfColors[color])   
+        if not color:
+            await ctx.send("You must specify a color")
+        else:    
+            for x in ctx.guild.roles:
+                if x.id == int(role): 
+                    if color in listOfColors.keys():
+                        role = ctx.message.guild.get_role(int(role))
+                        await role.edit(color=listOfColors[color])   
+                        await ctx.send("You have updated your role color to "+ color)
+                        return   
+                    else:
+                        await ctx.send("The color " + color + " is not available")
+            await ctx.send("You do not have that role")
+            
+    #method to change channel name 
+    @commands.command()
+    async def changename(self, ctx,*, newName):
+    #message.guild.channels.find("name", "general").setName("Testing");
+        temp=ctx.message.content.split()
+        role=""
+        newName=""
+        for word in temp: 
+            if "<@&" in word:
+                for letter in word:
+                    if letter.isalnum():
+                        role= role + letter
+            elif bot_config.pfix not in word:
+                newName = newName + word
+        if not newName:
+            await ctx.send("You must specify a name")
+        else:
+            for x in ctx.guild.roles: #checks if role is in the list of roles
+                if x.id == int(role): 
+                    role = ctx.message.guild.get_role(int(role))    
+                    await ctx.message.channel.edit(name=newName)
+                    await ctx.send("You have updated your channel name to "+ newName)
                     return   
-        await ctx.send("You do not have that role")
+            await ctx.send("You do not have that role")
+    #called by !changename @role new name 
     
-    #called by !changecolor @role dark green
-   
-
     @commands.command()
     async def li(self, ctx):
         """
