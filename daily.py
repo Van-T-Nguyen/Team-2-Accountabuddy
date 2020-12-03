@@ -21,12 +21,10 @@ class sendDaily(commands.Cog):
 		self.ctx = None
 
 	@commands.command()
-	async def daily(self, ctx, numDays):
+	async def daily(self, ctx):
 		await ctx.send("Attempting to send messages every day")
-		self.limit = int(numDays)
 		self.ctx = ctx
 		self.day = 1
-
 		self.dailyMsg.start()
 
 	@commands.command()
@@ -35,15 +33,10 @@ class sendDaily(commands.Cog):
 		await self.ctx.send("Admin stop")
 		self.dailyMsg.stop()
 
-
-
 	@tasks.loop(minutes=1)
 	async def dailyMsg(self):
 		await self.createMessage(self.ctx, self.day)
-		#if self.day == self.limit:
-		#	self.dailyMsg.stop()
 		self.day = self.day + 1
-
 
 	@commands.Cog.listener()
 	async def on_guild_channel_create(self, channel):
