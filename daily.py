@@ -35,14 +35,24 @@ class sendDaily(commands.Cog):
 
 	@tasks.loop(minutes=1)
 	async def dailyMsg(self):
-		await self.createMessage(self.ctx, self.day)
+		if(self.day > 1):
+			await self.createMessage(self.ctx, self.day)
 		self.day = self.day + 1
 
 	@commands.Cog.listener()
 	async def on_guild_channel_create(self, channel):
-		await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
-		self.ctx = channel
-		self.dailyMsg.start()
+		if(not isinstance(channel,discord.VoiceChannel)):
+			self.day = 1
+			self.combo = 0
+			await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
+			self.ctx = channel
+			self.dailyMsg.start()
+
+	@commands.Cog.listener()
+	async def on_guild_channel_delete(self, channel):
+		if(not isinstance(channel,discord.VoiceChannel)):
+			print("[daily.py] loop stopped")
+			self.dailyMsg.stop()
 
 	async def createMessage(self, ctx, curDay):
 		string = "AccountaBuddy checking in. How are you doing on your task? React if it is going well."
