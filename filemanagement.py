@@ -31,6 +31,7 @@ def makeList(path):
 def getEntry(path):
     """Gets a random entry from this text file"""
     l = makeList(path)
+    return random.choice(l)
 
 def addToList(path,item):
     """Adds item to path. Does not check if it's already present."""
@@ -38,31 +39,36 @@ def addToList(path,item):
     f.write(str(item)+"\n")
     f.close()
 
-def removeFromList(path, item):
+def removeFromList(path, key):
     with open(path, "r") as f:
         list = f.readlines()#.split("/n")
         list = [x.strip("\n") for x in list]
 
     with open(path, "w") as f:
         for x in list:
-            if x != str(item):
+            if str(key) in x:
+                pass
+            elif str(key) not in x:
                 f.write(x + "\n")
-            elif x == list[(len(list)-1)] and list[(len(list)-1)] != "\n":
-                f.write("\n")
             else:
                 pass
     
     scrubList(path)
 
-def isOnList(path,item):
+def isOnList(path,item,val):
     """Checks to see if this is on the list in the file."""
     f = open(path,"r")
     outlist = f.read().splitlines()
     f.close()
+    i = 0;
     #print("{} in {}".format(str(item),outlist))
     for thing in outlist:
+        i = i + 1;
         if( str(item) == thing):
             #print("{} is {}".format(str(item),thing))
+            if(val):
+                return i
             return True
-    
+    if(val):
+        return -1
     return False

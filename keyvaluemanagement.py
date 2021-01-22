@@ -140,3 +140,13 @@ def kvGetKey(path, value):
         return None
     else:
         return keys[x]
+    
+def kvGetKey2(path,value): #Specially made (Pardon my awful code) for the react2join module to avoid breaking compat. w/ kvGetKey
+    """Gets key from value. Returns None if not present."""
+    keys, values = kvGetKeysValues(path)
+    #print("{} in {}".format(str(item),outlist))
+    
+    for i in range(len(keys)):
+        if str(values[i]) == str(value):
+            return keys[i]
+    return None

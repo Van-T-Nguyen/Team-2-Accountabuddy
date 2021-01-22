@@ -15,3 +15,4 @@ Social Media Detox=====Health$Habits
 Earn More Money=====Habits$Finances
 Practice Guitar=====Education
 Dieting=====Food$Habits
+Accountabuddy=====Senior Project$Programming
