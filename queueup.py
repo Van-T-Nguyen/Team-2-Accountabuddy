@@ -7,6 +7,7 @@ import bot_config
 from keyvaluemanagement import *
 from filemanagement import *
 from discord.ext.commands import has_permissions, MissingPermissions
+from quickstart import *
 import random
 
 interestsfile = "interests.txt"
@@ -83,7 +84,7 @@ class QueueCog(commands.Cog):
                 await ctx.send("You're already in a stable relationship. Don't do this\n")
                 return      
 
-        if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
+        if(findValue(spread(), "Queue", ctx.author.id) != None): #If user is in the queue, exit
             await ctx.send("You're already in a queue!\n")
             await ctx.send("If you want to update your queue listing, try {}dropout then rejoin.\n".format(bot_config.pfix))
             return
@@ -95,7 +96,7 @@ class QueueCog(commands.Cog):
                 return
 
             else:
-                userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
+                userListing = findValue(spread(), "Queue", ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
                     interests = kvGetValue(queuefile, userListing)
                     await self.forcePair(ctx, ctx.message.mentions[0])
@@ -191,46 +192,30 @@ class QueueCog(commands.Cog):
             #await message.edit(content="Timeout, took to long to respond.")
             #return
         
-        message = await ctx.send("Adding to waitlist...")
+        #await message.edit(content="Adding to waitlist...")
+        write_sheet(spread(), "Queue", [str(ctx.author.id), readinterests[0]])
         
-        result = await self.addToQueue(ctx.author,readinterests,True)
-        
-        if(result == 0):
-            await message.edit(content="Done! I'll let you know when we find someone else interested.")
-        if(result == 1): #Can't send DM
-            await message.edit(content="Can't send a DM to you, so I couldn't put you on the waitlist.")
-        
-        
+        await self.addToQueue(ctx, ctx.author,readinterests, True)        
         
         pass
 
-    """
-    @commands.command()
-    async def show(self, ctx):
-        #TODO:Write a kv command that gets the whole queue and pastes it
-        #ctx.send("")
-    """
-
     @commands.command()
     async def list(self, ctx):
-        
-        users = kvGetKeys(queuefile)
-        if (users == []):
+
+        users, interests = get_sheet(spread(), "Queue")
+        if (users == None):
             await ctx.send("There is no one on the list currently.")
             return
-        interests = kvGetValues(queuefile)
         guild = bot_config.Home_Server
         home = self.bot.get_guild(guild)
 
         for x in range(len(users)):
             await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
 
-    #TODO Make a command that can manually pair with a user
-
     @commands.command()
     async def dropout(self,ctx):
-        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
-            kvRemoveKey(queuefile, ctx.author.id) #Easy peasy
+        if(findValue(spread(), "Queue", ctx.author.id) != None): #Key already exists
+            deleteEntry(spread(), "Queue", ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
             self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
             await self.reacttojoinCog.listUpdate() #Update the list
@@ -238,16 +223,16 @@ class QueueCog(commands.Cog):
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
     
-    async def removeFromQueue(self, userid:int):
-        """Removes a user from the queue."""
+    """async def removeFromQueue(self, userid:int):
+        #Removes a user from the queue
         if(kvGetKey(queuefile, userid) != None): #Key already exists
             kvRemoveKey(queuefile, userid) #Easy peasy
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
-            pass
+            pass"""
     
     
-    async def addToQueue(self,user,interests:list,sendDM=False):
+    async def addToQueue(self,ctx, user,interests:list,sendDM=False):
         """Add a user to the queue with these interests. Returns an integer."""
         #Error codes:
         #0 = No error
@@ -255,37 +240,36 @@ class QueueCog(commands.Cog):
         
         
         #queuefile
-        if(kvGetKey(queuefile, user.id) is not None): #Key already exists
+        if(findValue(spread(), "Queue", user.id) is not None): #Key already exists
             pass #No error... yet.
         
-        kvSetValue(queuefile, user.id,"$".join(interests)) #Out we go.
+        write_sheet(spread(), "Queue", [user.id, interests[0]]) #Out we go
         
         if(sendDM==True):
             try:
+                await ctx.send("Done! I'll let you know when we find someone else interested.")
                 await user.send("Added to queue! I'll send you a message here when a pair is found.\n\nIf you wanna drop the queue, do {}dropout and I will strike you from the waitlist.".format(bot_config.pfix))
             except Exception as e:
                 print("Exception in addToQueue Sending DM: {}".format(e))
-                return 1 #Unable to send DM
-                
-        
+                return #Unable to send DM
         
         await self.queueUpdate()
-        return 0
+        return
     
     async def delete_role(self, ctx):
         #Finds the role, deletes it, and sends everyone with the partner a farewell message
         role = await self.find_role(ctx)
         
-        #for x in role.members:
-            #await x.create_dm()
-            #await x.dm_channel.send("I hope it was a fruitful endeavor.")
+        for x in role.members:
+            await x.create_dm()
+            await x.dm_channel.send("I hope it was a fruitful endeavor.")
         
         print(role.permissions)
         await role.delete()
         return
 
     @commands.command()
-    async def abandon(self, ctx):
+    async def accountable(self, ctx):
         #Let's a user quit their current group.
 
         #Makes it so that the specific channel to be deleted is easy to find.
@@ -383,7 +367,7 @@ class QueueCog(commands.Cog):
         #Check for possible pairings in the file.
         #If a pair is found, run pair() from another Cog and remove them from the queue list. They should now be paired!
         
-        ids, interestsproxy = kvGetKeysValues(queuefile) #Get keys and values from the file
+        ids, interestsproxy = get_sheet(spread(), "Queue") #Get keys and values from the file
         
         #Split interests into a list of it's interests isntead of a single compressed string
         interests = []
@@ -416,7 +400,7 @@ class QueueCog(commands.Cog):
     async def leaderboard(self,ctx):
         #prints the leaderboard
 
-        leaderboard = kvMakeList(leaderboardfile)
+        leaderboard = get_sheet(spread(), "Leaderboard")
         #this kvMakeList function comes from keyvaluemanagement.py.
         
         leaderboardlist = ""
@@ -450,8 +434,9 @@ class QueueCog(commands.Cog):
         await self.giveWorkspace(user1,user2,interests) #Create role and channel
         
         if(removeFromQueue==True):
-            kvRemoveKey(queuefile,user1)
-            kvRemoveKey(queuefile,user2)
+            deleteEntry(spread(), "Queue", user1)
+            deleteEntry(spread(), "Queue", user2)
+
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
@@ -645,7 +630,7 @@ class QueueCog(commands.Cog):
         except ValueError:
             await ctx.send("You aren't on the list");
 
-        ctx.send(interestlist);
+        #ctx.send(interestlist);
     
     @commands.Cog.listener()
     async def on_voice_state_update(self, member, before, after):

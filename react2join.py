@@ -7,7 +7,9 @@ import bot_config
 from keyvaluemanagement import *
 from filemanagement import *
 from discord.ext.commands import has_permissions, MissingPermissions
+from quickstart import *
 import random
+
 
 
 interestsfile = "interests.txt"
@@ -106,7 +108,7 @@ class ReactJoinCog(commands.Cog):
         
         await self.statchan.trigger_typing()
         
-        queueIDs, queueValues = kvGetKeysValues(queuefile) #[ userid, interests:str ]
+        queueIDs, queueValues = get_sheet(spread(), "Queue") #[ userid, interests:str ]
         messageUIDs, messageObjIDs = kvGetKeysValues(tiefile) #[ userid, messageid ]
         
         #remove people not in queue
