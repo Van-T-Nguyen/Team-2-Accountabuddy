@@ -11,13 +11,13 @@ from quickstart import *
 import random
 
 interestsfile = "interests.txt"
-goalsfile = "goals.txt"
-leaderboardfile = "leaderboard.txt"
+
 datadir = "queue/"
-queuefile = datadir + "userqueue.txt"
 channelpairs = datadir + "channelspairs.txt"
 
-textfiles = [queuefile, channelpairs] #Ensures these files exist on launch
+spread = spread()
+
+textfiles = [channelpairs] #Ensures these files exist on launch
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -84,7 +84,7 @@ class QueueCog(commands.Cog):
                 await ctx.send("You're already in a stable relationship. Don't do this\n")
                 return      
 
-        if(findValue(spread(), "Queue", ctx.author.id) != None): #If user is in the queue, exit
+        if(findValue(spread, "Queue", ctx.author.id) != None): #If user is in the queue, exit
             await ctx.send("You're already in a queue!\n")
             await ctx.send("If you want to update your queue listing, try {}dropout then rejoin.\n".format(bot_config.pfix))
             return
@@ -96,9 +96,9 @@ class QueueCog(commands.Cog):
                 return
 
             else:
-                userListing = findValue(spread(), "Queue", ctx.message.mentions[0].id) 
+                userListing = findValue(spread, "Queue", ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
-                    interests = kvGetValue(queuefile, userListing)
+                    #interests = kvGetValue(queuefile, userListing)
                     await self.forcePair(ctx, ctx.message.mentions[0])
                     return
                 else:
@@ -193,7 +193,6 @@ class QueueCog(commands.Cog):
             #return
         
         #await message.edit(content="Adding to waitlist...")
-        write_sheet(spread(), "Queue", [str(ctx.author.id), readinterests[0]])
         
         await self.addToQueue(ctx, ctx.author,readinterests, True)        
         
@@ -201,8 +200,8 @@ class QueueCog(commands.Cog):
 
     @commands.command()
     async def list(self, ctx):
-
-        users, interests = get_sheet(spread(), "Queue")
+        """Shows the current queue in text format"""
+        users, interests = get_sheet(spread, "Queue")
         if (users == None):
             await ctx.send("There is no one on the list currently.")
             return
@@ -214,8 +213,9 @@ class QueueCog(commands.Cog):
 
     @commands.command()
     async def dropout(self,ctx):
-        if(findValue(spread(), "Queue", ctx.author.id) != None): #Key already exists
-            deleteEntry(spread(), "Queue", ctx.author.id) #Easy peasy
+        """Removes you from the queue if you are on it"""
+        if(findValue(spread, "Queue", ctx.author.id) != None): #Key already exists
+            deleteEntry(spread, "Queue", ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
             self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
             await self.reacttojoinCog.listUpdate() #Update the list
@@ -240,10 +240,10 @@ class QueueCog(commands.Cog):
         
         
         #queuefile
-        if(findValue(spread(), "Queue", user.id) is not None): #Key already exists
+        if(findValue(spread, "Queue", user.id) is not None): #Key already exists
             pass #No error... yet.
         
-        write_sheet(spread(), "Queue", [user.id, interests[0]]) #Out we go
+        write_sheet(spread, "Queue", [str(user.id), interests[0]]) #Out we go
         
         if(sendDM==True):
             try:
@@ -270,6 +270,7 @@ class QueueCog(commands.Cog):
 
     @commands.command()
     async def accountable(self, ctx):
+        """Dissolves an Accountabuddy group (only usuable in your pair channel)"""
         #Let's a user quit their current group.
 
         #Makes it so that the specific channel to be deleted is easy to find.
@@ -279,28 +280,11 @@ class QueueCog(commands.Cog):
 
         await self.delete_role(ctx)
 
+        for voice in ctx.channel.category.voice_channels:
+            if voice.name == ctx.channel.name:
+                await voice.delete
+
         await ctx.channel.delete()
-
-    @commands.command()
-    async def talk(self, ctx):
-        #Lets a user make a voice channel
-
-        #Makes it so that the VC can only be made in a pair room
-        if (ctx.channel.category.name.lower() != "pairs"):
-            await ctx.send("You can only create talk rooms within your own room!")
-            return
-        
-        home = self.bot.get_guild(self.homeserver)
-        category = discord.utils.get(home.categories, name="pairs")
-        
-        #Prevents two chat rooms
-        for x in category.voice_channels:
-            if (x.name == ctx.channel.name):
-                await ctx.send("You can't create two talk rooms!")
-                return
-
-        role = await self.find_role(ctx)
-        await self.talk_room(role.id, ctx.channel.name)
 
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
@@ -354,7 +338,7 @@ class QueueCog(commands.Cog):
         
         
     
-    @commands.command()
+    @commands.command(hidden=True) #Not ever used by a user itself
     async def upd(self,ctx):
         self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
         await self.reacttojoinCog.listUpdate() #Update the list
@@ -367,7 +351,7 @@ class QueueCog(commands.Cog):
         #Check for possible pairings in the file.
         #If a pair is found, run pair() from another Cog and remove them from the queue list. They should now be paired!
         
-        ids, interestsproxy = get_sheet(spread(), "Queue") #Get keys and values from the file
+        ids, interestsproxy = get_sheet(spread, "Queue") #Get keys and values from the file
         
         #Split interests into a list of it's interests isntead of a single compressed string
         interests = []
@@ -398,9 +382,9 @@ class QueueCog(commands.Cog):
     #TODO: FINISH leaderboard
     @commands.command()
     async def leaderboard(self,ctx):
-        #prints the leaderboard
+        """Prints the current leaderboard"""
 
-        leaderboard = get_sheet(spread(), "Leaderboard")
+        leaderboard = get_sheet(spread, "Leaderboard")
         #this kvMakeList function comes from keyvaluemanagement.py.
         
         leaderboardlist = ""
@@ -434,8 +418,8 @@ class QueueCog(commands.Cog):
         await self.giveWorkspace(user1,user2,interests) #Create role and channel
         
         if(removeFromQueue==True):
-            deleteEntry(spread(), "Queue", user1)
-            deleteEntry(spread(), "Queue", user2)
+            deleteEntry(spread, "Queue", user1)
+            deleteEntry(spread, "Queue", user2)
 
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
@@ -469,8 +453,10 @@ class QueueCog(commands.Cog):
                         interestsline += "{}, ".format(thing)
         
         await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}abandon** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
+
+        await self.talk_room(role.id, channel_name)
     
-    
+    """
     #TODO: FINISH SELF.HELPTEXT()
     @commands.command()
     async def helpme(self,ctx):
@@ -484,7 +470,7 @@ class QueueCog(commands.Cog):
         text = pf+"join - Join a queue and get paired"
         
         return text
-    
+    """
     
     def getColor(self):
         return random.randint(0x7F7F7F, 0xFFFFFF) #50-100 brightness for each channel, so the color stays bright
@@ -545,6 +531,7 @@ class QueueCog(commands.Cog):
     #creates functionality for users to change their role color
     @commands.command()
     async def changecolor(self, ctx,*, color):
+        """IN PROGRESS: Allows you to change your group color (only for accountable users)"""
         listOfColors = {
                         "blue" : discord.Color.blue(),
                         "teal" : discord.Color.teal(),
@@ -591,7 +578,8 @@ class QueueCog(commands.Cog):
         for interest in interests:
             interestlist += interest+'\n'
         await ctx.send(interestlist);
-        
+
+    """    
     @commands.command()
     async def addgoal(self, ctx): # Need to remove the pfix and command from entry
         temp = kvGetKeys(goalsfile);
@@ -631,11 +619,7 @@ class QueueCog(commands.Cog):
             await ctx.send("You aren't on the list");
 
         #ctx.send(interestlist);
-    
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        if (after.channel == None and before.channel.name.lower() != "yellbox"):
-            await before.channel.delete()
+    """
 
 def setup(bot):
     bot.add_cog(QueueCog(bot))

@@ -1,4 +1,4 @@
-token = "NzUzNzgyNTY0NzQ1MTE3Nzk3.X1rMuA.bQB03-9EyVlXzDzyycv2Bscmc4c"
+token = "NzUzNzgyNTY0NzQ1MTE3Nzk3.X1rMuA.N9mV4ITh3KXVeigqFaZtmr8i6d4"
 
 DM_Channel = 753122017334526043 #DMs received by the bot will be forwarded here.
 

@@ -30,6 +30,8 @@ def findValue(spread, sheet, id): # Finds where an ID is held in the spreadsheet
 def get_id(sheet):
     if sheet == "Queue":
         return 0
+    elif sheet == "Message":
+        return 1793963230
     elif sheet == "Users":
         return 2081950163
     elif sheet == "Groups":
@@ -50,6 +52,9 @@ def get_sheet(spreadsheet, sheet):
     elif (sheet == "Queue"):
         ids, goals = get_queue(values)
         return ids, goals
+    elif (sheet == "Message"):
+        ids, messages = get_message(values)
+        return ids, messages
     elif (sheet == "Users"):
         ids, interests = get_users(values)
         return ids, interests
@@ -67,6 +72,14 @@ def get_queue(values):
         ids.append(row[0])
         goals.append(row[1])
     return ids, goals
+
+def get_message(values):
+    ids = []
+    message = []
+    for row in values:
+        ids.append(row[0])
+        message.append(row[1])
+    return ids, message
 
 def get_users(values):
     ids = []    
@@ -191,7 +204,7 @@ def spread():
 
 if __name__ == '__main__':
     spreadsheet = spread()
-    write_sheet(spreadsheet, "Users", ["162777143028350976", ["Blah", "Hahaha MORE entries"]])
+    #write_sheet(spreadsheet, "Users", ["162777143028350976", ["Blah", "Hahaha MORE entries"]])
     #deleteEntry(spreadsheet, "Users", 162777143028350976)
-    get_sheet(spreadsheet, "Users")
+    get_sheet(spreadsheet, "Message")
     #print(findValue(spreadsheet, "Groups", 112))
