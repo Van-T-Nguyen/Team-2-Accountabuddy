@@ -19,6 +19,8 @@ class sendDaily(commands.Cog):
 		self.limit = 0
 		self.combo = 0
 		self.ctx = None
+		self.listOfChannels = []
+		self.dailyMsg.start()
 
 	@commands.command()
 	async def daily(self, ctx):
@@ -35,31 +37,38 @@ class sendDaily(commands.Cog):
 
 	@tasks.loop(minutes=1)
 	async def dailyMsg(self):
-		if(self.day > 1):
-			await self.createMessage(self.ctx, self.day)
-		self.day = self.day + 1
+		for channel in self.listOfChannels:
+			await self.createMessage(channel)
 
 	@commands.Cog.listener()
 	async def on_guild_channel_create(self, channel):
-		if(not isinstance(channel,discord.VoiceChannel)):
+		if(not isinstance(channel,discord.VoiceChannel)):"""
 			self.day = 1
 			self.combo = 0
 			await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
 			self.ctx = channel
-			self.dailyMsg.start()
+			self.dailyMsg.start()"""
+		print("About to add: ")
+		print(channel)
+		self.listOfChannels.append(channel)
+		print(self.listOfChannels)
+
+
 
 	@commands.Cog.listener()
 	async def on_guild_channel_delete(self, channel):
 		if(not isinstance(channel,discord.VoiceChannel)):
-			print("[daily.py] loop stopped")
-			self.dailyMsg.stop()
+			print("About to delete: ")
+			print(channel)
+			self.listOfChannels.remove(channel)
+			print(self.listOfChannels)
 
-	async def createMessage(self, ctx, curDay):
-		string = "AccountaBuddy checking in. How are you doing on your task? React if it is going well."
-		dayCount = "It is day {}.".format(curDay)
+	async def createMessage(self, ctx):
+		string = "AccountaBuddy checking in. How are you doing on your task?."
+		#dayCount = "It is day {}.".format(curDay)
 		message = await ctx.send(string)
 		await message.add_reaction('\U0001F44B')
-		await ctx.send(dayCount)
+		#await ctx.send(dayCount)
 
 	@commands.Cog.listener()
 	async def on_reaction_add(self, react, user):
