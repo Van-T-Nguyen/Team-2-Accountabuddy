@@ -283,12 +283,12 @@ class QueueCog(commands.Cog):
         return
 
     @commands.command()
-    async def abandon(self, ctx):
+    async def quit(self, ctx):
         #Let's a user quit their current group.
 
         #Makes it so that the specific channel to be deleted is easy to find.
         if (ctx.channel.category.name.lower() != "pairs"):
-            await ctx.send("You can only abandon groups in your meeting room!")
+            await ctx.send("You can only leave groups in your meeting room!")
             return
 
         await self.delete_role(ctx)
