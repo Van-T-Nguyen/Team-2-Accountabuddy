@@ -58,7 +58,7 @@ class QueueCog(commands.Cog):
         
         return None
         
-    @commands.command()
+    #@commands.command()
     @commands.max_concurrency(1,commands.BucketType.user)
     async def join(self,ctx):
         """Initiate joining of the queue."""
@@ -211,7 +211,7 @@ class QueueCog(commands.Cog):
         for x in range(len(users)):
             await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
 
-    @commands.command()
+    #@commands.command()
     async def dropout(self,ctx):
         """Removes you from the queue if you are on it"""
         if(findValue(spread, "Queue", ctx.author.id) != None): #Key already exists
@@ -222,11 +222,6 @@ class QueueCog(commands.Cog):
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
-
-
-    @commands.command()
-    async def tutorial(self,ctx):
-        await ctx.send("Hi! Since this is your first time using accountabuddy, I've prepared a quick tutorial to get you on your way to self improvement.\nThe first and most important thing to do is determine what you want to work on! We have a varied selection of topics our users focus on, so try to find one of the following that fits your purpose, or is somewhat close to your purpose (if you want to try a paleo diet, dieting is the category you would want). Our categories are-\nJogging\nFrisbee Golf\nStudyHabits\nPizza\nBurgers\nSave Money\nMeditate\nReading\nLearn a Language\nSleep\nLearn to cook\nRunning\nImprove Concentration\nSocial Media Detox\nEarn More Money\nPractice Guitar\nDieting\nAccountabuddy\nWhen you have one of these you would like to work with someone else to improve at, the next thing you'll want to do is try and find someone with the same general improvement area! You're going to use a text command, where you will type !join followed by a space, and then your category of interest- as an example, lets use dieting. So, to start, I would type !join dieting. Once you do this, you will be on your way to helping someone else be accountable!")
     
     """async def removeFromQueue(self, userid:int):
         #Removes a user from the queue
@@ -290,6 +285,9 @@ class QueueCog(commands.Cog):
                 await voice.delete
 
         await ctx.channel.delete()
+        
+        self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
+        await self.reacttointerestCog.listUpdate() #Update the list
 
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
@@ -360,25 +358,26 @@ class QueueCog(commands.Cog):
         
         #Split interests into a list of it's interests isntead of a single compressed string
         interests = []
-        for prox in interestsproxy:
-            interests.append(prox.split('$'))
-        
-        for i, userid in enumerate(ids): #Iterate through each user and look for a pair.
+        if(interestsproxy != None):
+            for prox in interestsproxy:
+                interests.append(prox.split('$'))
             
-            #if(userid in askedusers):
-            #    continue #If we're already waiting for a response from them. Code for later.
-            
-            thisinterest = interests[i] #An array of strings
-            for j, otherid in enumerate(ids): #Look through other users
-                if(otherid != userid): #Not self
-                    otherinterest = interests[j] #Possible partner's interests
-                    matches = set(thisinterest) & set(otherinterest)
-                    if(len(matches) > 0): #Has a match at all, not complicated
-                        #Pair 'em
-                        print("[queueUpdate] matches are: {}".format(matches))
-                        await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
-                        print("[queueUpdate] Paired {} and {}!!".format(userid,otherid))
-                        return await self.queueUpdate() #Start from the beginning because our array status has changed.
+            for i, userid in enumerate(ids): #Iterate through each user and look for a pair.
+                
+                #if(userid in askedusers):
+                #    continue #If we're already waiting for a response from them. Code for later.
+                
+                thisinterest = interests[i] #An array of strings
+                for j, otherid in enumerate(ids): #Look through other users
+                    if(otherid != userid): #Not self
+                        otherinterest = interests[j] #Possible partner's interests
+                        matches = set(thisinterest) & set(otherinterest)
+                        if(len(matches) > 0): #Has a match at all, not complicated
+                            #Pair 'em
+                            print("[queueUpdate] matches are: {}".format(matches))
+                            await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
+                            print("[queueUpdate] Paired {} and {}!!".format(userid,otherid))
+                            return await self.queueUpdate() #Start from the beginning because our array status has changed.
         
         self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
         await self.reacttojoinCog.listUpdate() #Update the list
@@ -423,8 +422,8 @@ class QueueCog(commands.Cog):
         await self.giveWorkspace(user1,user2,interests) #Create role and channel
         
         if(removeFromQueue==True):
-            deleteEntry(spread, "Queue", user1)
-            deleteEntry(spread, "Queue", user2)
+            deleteEntry(spread, "Queue", int(user1))
+            deleteEntry(spread, "Queue", int(user2))
 
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
@@ -625,6 +624,13 @@ class QueueCog(commands.Cog):
 
         #ctx.send(interestlist);
     """
+    
+    @commands.command()
+    async def tutorial(self,ctx):
+        await ctx.send("Hi! Since this is your first time using accountabuddy, I've prepared a quick tutorial to get you on your way to self improvement.\nThe first and most important thing to do is determine what you want to work on! We have a varied selection of topics our users focus on, so try to find one of the following that fits your purpose, or is somewhat close to your purpose (if you want to try a paleo diet, dieting is the category you would want). Our categories are-\nJogging\nFrisbee Golf\nStudyHabits\nPizza\nBurgers\nSave Money\nMeditate\nReading\nLearn a Language\nSleep\nLearn to cook\nRunning\nImprove Concentration\nSocial Media Detox\nEarn More Money\nPractice Guitar\nDieting\nAccountabuddy\nWhen you have one of these you would like to work with someone else to improve at, the next thing you'll want to do is try and find someone with the same general improvement area! You're going to use a text command, where you will type !join followed by a space, and then your category of interest- as an example, lets use dieting. So, to start, I would type !join dieting. Once you do this, you will be on your way to helping someone else be accountable!")
 
+    
+    
+    
 def setup(bot):
     bot.add_cog(QueueCog(bot))
