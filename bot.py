@@ -16,7 +16,7 @@ pfix = bot_config.pfix  #Changeable prefix for calling the bot.
 
 intents = discord.Intents.all()
 
-startup_extensions = ['blankcog','react2join','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
+startup_extensions = ['blankcog','react2join','react2interest','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
 def makeList(path):
     """Return a list of ints from this file."""

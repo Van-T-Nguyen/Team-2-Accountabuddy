@@ -17,7 +17,7 @@ channelpairs = datadir + "channelspairs.txt"
 
 spread = spread()
 
-textfiles = [channelpairs] #Ensures these files exist on launch
+textfiles = [channelpairs] #Ensures these files exist on launc
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -269,7 +269,7 @@ class QueueCog(commands.Cog):
         return
 
     @commands.command()
-    async def accountable(self, ctx):
+    async def end(self, ctx):
         """Dissolves an Accountabuddy group (only usuable in your pair channel)"""
         #Let's a user quit their current group.
 
@@ -422,8 +422,9 @@ class QueueCog(commands.Cog):
         await self.giveWorkspace(user1,user2,interests) #Create role and channel
         
         if(removeFromQueue==True):
-            deleteEntry(spread, "Queue", int(user1))
-            deleteEntry(spread, "Queue", int(user2))
+            if(int(user1) != None):
+                deleteEntry(spread, "Queue", int(user1))
+                deleteEntry(spread, "Queue", int(user2))
 
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
@@ -456,7 +457,7 @@ class QueueCog(commands.Cog):
                     else: #Anything else (3+ entries)
                         interestsline += "{}, ".format(thing)
         
-        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}abandon** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
+        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}end** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
 
         await self.talk_room(role.id, channel_name)
     

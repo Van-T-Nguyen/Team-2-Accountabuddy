@@ -245,6 +245,10 @@ class ReactInterestCog(commands.Cog):
         print("[react2interest listUpdate] Checking for people from external DB with no checked interests.")
         #await asyncio.sleep(3)
         ids, goals = get_sheet(spread,"Queue")
+        
+        if(ids is None): ids = []
+        if(goals is None): goals = []
+        
         internalids = [] ; 
         for i in queueout:
             internalids.append(i) # Make list of every ID in our internal database for quick comparisons.
@@ -293,7 +297,7 @@ class ReactInterestCog(commands.Cog):
         if(str(payload.emoji) != queueemoji):
             return print("[react2interest] Reaction isn't queueemoji, ignoring.")
         print("[react2interest] Updating emoji detected, waiting 5 seconds...")
-        self.updatetime = time.time() + 5
+        self.updatetime = time.time() #+ 5
     
     @commands.Cog.listener()
     #@commands.check(processable) #check doesn't work in events, only commands
@@ -318,7 +322,7 @@ class ReactInterestCog(commands.Cog):
             return print("[react2interest] Reaction isn't queueemoji, ignoring.")
         
         print("[react2interest] Updating emoji detected, waiting 5 seconds...")
-        self.updatetime = time.time() + 5
+        self.updatetime = time.time() #+ 5
     
 def setup(bot):
     bot.add_cog(ReactInterestCog(bot))
