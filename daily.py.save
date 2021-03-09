@@ -48,10 +48,10 @@ class sendDaily(commands.Cog):
 			await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
 			self.ctx = channel
 			self.dailyMsg.start()"""
-		print("About to add: ")
-		print(channel)
-		self.listOfChannels.append(channel)
-		print(self.listOfChannels)
+			print("About to add: ")
+			print(channel)
+			self.listOfChannels.append(channel)
+			print(self.listOfChannels)
 
 
 
@@ -64,7 +64,7 @@ class sendDaily(commands.Cog):
 			print(self.listOfChannels)
 
 	async def createMessage(self, ctx):
-		string = "AccountaBuddy checking in. How are you doing on your task?"
+		string = "AccountaBuddy checking in. How are you doing on your task?."
 		#dayCount = "It is day {}.".format(curDay)
 		message = await ctx.send(string)
 		await message.add_reaction('\U0001F44B')
@@ -74,8 +74,11 @@ class sendDaily(commands.Cog):
 	async def on_reaction_add(self, react, user):
 		numReact = react.count
 		if (numReact > 2 and react.emoji ==  '\U0001F44B'):
-			await react.message.channel.send("Thanks for checking in.")
+			self.combo = self.combo + 1
+			await self.comboMsg(self.ctx)
 
+	async def comboMsg(self, ctx):
+		await ctx.send("Thanks for checking in. Current score: {}".format(self.combo))
 
 def setup(bot):
 	bot.add_cog(sendDaily(bot))
