@@ -576,13 +576,13 @@ class QueueCog(commands.Cog):
         """
         This lists all interests currently catalogued.
         """
-        interests = kvGetKeys(interestsfile)
+        interests = get_sheet(spread, "Interests")
         #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
         
         interestlist = ""
         for interest in interests:
             interestlist += interest+'\n'
-        await ctx.send(interestlist);
+        await ctx.send(interestlist)
 
     """    
     @commands.command()
