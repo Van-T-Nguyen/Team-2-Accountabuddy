@@ -7,16 +7,17 @@ import bot_config
 from keyvaluemanagement import *
 from filemanagement import *
 from discord.ext.commands import has_permissions, MissingPermissions
+from quickstart import *
 import random
 
 interestsfile = "interests.txt"
-goalsfile = "goals.txt"
-leaderboardfile = "leaderboard.txt"
+
 datadir = "queue/"
-queuefile = datadir + "userqueue.txt"
 channelpairs = datadir + "channelspairs.txt"
 
-textfiles = [queuefile, channelpairs] #Ensures these files exist on launch
+spread = spread()
+
+textfiles = [channelpairs] #Ensures these files exist on launc
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -26,6 +27,7 @@ class QueueCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.homeserver = bot_config.Home_Server
+        self.reacttojoinCog = bot.get_cog("ReactJoinCog") #ReactJoinCog otherwise
         
         for entry in textfiles:
             try:
@@ -56,10 +58,11 @@ class QueueCog(commands.Cog):
         
         return None
         
-    @commands.command()
+    #@commands.command()
+    @commands.max_concurrency(1,commands.BucketType.user)
     async def join(self,ctx):
         """Initiate joining of the queue."""
-        
+        #slight change here 
         #Check if in the home server
         #if not...
         #...Invite and bail.
@@ -76,10 +79,15 @@ class QueueCog(commands.Cog):
             return #Abort
 
         #If user is in a group, exit
-        for x in ctx.me.roles:
+        for x in ctx.author.roles:
             if x.name == "Accountabuds":
                 await ctx.send("You're already in a stable relationship. Don't do this\n")
                 return      
+
+        if(findValue(spread, "Queue", ctx.author.id) != None): #If user is in the queue, exit
+            await ctx.send("You're already in a queue!\n")
+            await ctx.send("If you want to update your queue listing, try {}dropout then rejoin.\n".format(bot_config.pfix))
+            return
 
         if (ctx.message.mentions != []): #If user mentioned someone
             if (ctx.message.mentions[0] == ctx.author): #Only reads first mention
@@ -87,25 +95,15 @@ class QueueCog(commands.Cog):
                 await ctx.send("Try {}join without arguments.\n".format(bot_config.pfix))
                 return
 
-            else:                    
-                userListing = kvGetKey(queuefile, ctx.message.mentions[0].id) 
+            else:
+                userListing = findValue(spread, "Queue", ctx.message.mentions[0].id) 
                 if (userListing != None): #Pairs with someone on the list
-                    interests = kvGetValue(queuefile, userListing)
-                    await self.pair(ctx.author.id, ctx.message.mentions[0].id, interests)
+                    #interests = kvGetValue(queuefile, userListing)
+                    await self.forcePair(ctx, ctx.message.mentions[0])
                     return
                 else:
                     await ctx.send("You gotta ask for permission before wanting to join with people, buddy.")
-                    if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
-                        await ctx.send("We're not putting you on the list twice, so seeya.")
-                        return
-                    else:
-                        await ctx.send("We'll put you on the list instead...\n\n")
-        else: #They didn't mention anyone
-            if(kvGetKey(queuefile, ctx.author.id) != None): #If user is in the queue, exit
-            
-                await ctx.send("You can't pair up with yourself!\n")
-                await ctx.send("If you want to update your queue listing, try {}update instead.\n".format(bot_config.pfix))
-                return
+                    await ctx.send("We'll put you on the list instead...\n\n")
 
         #Normal joining if they pass all the checks.
 
@@ -172,81 +170,69 @@ class QueueCog(commands.Cog):
         
         """
         
-        debugtext = "Here's what I caught:\n\n"
-        for read in readinterests:
-            debugtext += "{}\n".format(read)
+        #debugtext = "Here's what I caught:\n\n"
+        #for read in readinterests:
+            #debugtext += "{}\n".format(read)
         
-        debugtext += "\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
-        
-        
-        message = await ctx.send(content=debugtext)
+        #debugtext += "\n **Finding a pair can take a while, and you will be sent a DM confirmation once a match is found.** Sounds good? Then hit the 👍 and I'll add you to the waitlist!"
         
         
-        #Add a thumb react to the message and wait for confirmation.
-        await message.add_reaction('👍')
-        def check(reaction, user):
-            return user == ctx.author and str(reaction.emoji) == '👍'
+        #message = await ctx.send(content=debugtext)
         
-        try:
-            reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
-        except asyncio.TimeoutError:
-            #await channel.send('👎')
-            await message.edit(content="Timeout, took to long to respond.")
-            return
         
-        await message.edit(content="Adding to waitlist...")
+        ##Add a thumb react to the message and wait for confirmation.
+        #await message.add_reaction('👍')
+        #def check(reaction, user):
+            #return user == ctx.author and str(reaction.emoji) == '👍'
         
-        result = await self.addToQueue(ctx.author,readinterests,True)
+        #try:
+            #reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+        #except asyncio.TimeoutError:
+            ##await channel.send('👎')
+            #await message.edit(content="Timeout, took to long to respond.")
+            #return
         
-        if(result == 0):
-            await message.edit(content="Done!")
-        if(result == 1): #Can't send DM
-            await message.edit(content="Can't send a DM to you, so I couldn't put you on the waitlist.")
+        #await message.edit(content="Adding to waitlist...")
+        
+        await self.addToQueue(ctx, ctx.author,readinterests, True)        
         
         pass
 
-    """
-    @commands.command()
-    async def show(self, ctx):
-        #TODO:Write a kv command that gets the whole queue and pastes it
-        #ctx.send("")
-    """
-
     @commands.command()
     async def list(self, ctx):
-        
-        users = kvGetKeys(queuefile)
-        if (users == []):
+        """Shows the current queue in text format"""
+        users, interests = get_sheet(spread, "Queue")
+        if (users == None):
             await ctx.send("There is no one on the list currently.")
             return
-        interests = kvGetValues(queuefile)
         guild = bot_config.Home_Server
         home = self.bot.get_guild(guild)
 
         for x in range(len(users)):
             await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
 
-    #TODO Make a command that can manually pair with a user
-
-    @commands.command()
+    #@commands.command()
     async def dropout(self,ctx):
-        if(kvGetKey(queuefile, ctx.author.id) != None): #Key already exists
-            kvRemoveKey(queuefile, ctx.author.id) #Easy peasy
+        """Removes you from the queue if you are on it"""
+        if(findValue(spread, "Queue", ctx.author.id) != None): #Key already exists
+            deleteEntry(spread, "Queue", ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
+            self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
+            await self.reacttojoinCog.listUpdate() #Update the list
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
     
-    async def removeFromQueue(self, userid:int):
-        """Removes a user from the queue."""
+    """async def removeFromQueue(self, userid:int):
+        #Removes a user from the queue
         if(kvGetKey(queuefile, userid) != None): #Key already exists
             kvRemoveKey(queuefile, userid) #Easy peasy
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
-            pass
+            pass"""
     
     
-    async def addToQueue(self,user,interests:list,sendDM=False):
+    async def addToQueue(self,ctx, user,interests:list,sendDM=False):
         """Add a user to the queue with these interests. Returns an integer."""
         #Error codes:
         #0 = No error
@@ -254,22 +240,21 @@ class QueueCog(commands.Cog):
         
         
         #queuefile
-        if(kvGetKey(queuefile, user.id) is not None): #Key already exists
+        if(findValue(spread, "Queue", user.id) is not None): #Key already exists
             pass #No error... yet.
         
-        kvSetValue(queuefile, user.id,"$".join(interests)) #Out we go.
+        write_sheet(spread, "Queue", [str(user.id), interests[0]]) #Out we go
         
         if(sendDM==True):
             try:
+                await ctx.send("Done! I'll let you know when we find someone else interested.")
                 await user.send("Added to queue! I'll send you a message here when a pair is found.\n\nIf you wanna drop the queue, do {}dropout and I will strike you from the waitlist.".format(bot_config.pfix))
             except Exception as e:
                 print("Exception in addToQueue Sending DM: {}".format(e))
-                return 1 #Unable to send DM
-                
-        
+                return #Unable to send DM
         
         await self.queueUpdate()
-        return 0
+        return
     
     async def delete_role(self, ctx):
         #Finds the role, deletes it, and sends everyone with the partner a farewell message
@@ -284,7 +269,8 @@ class QueueCog(commands.Cog):
         return
 
     @commands.command()
-    async def abandon(self, ctx):
+    async def end(self, ctx):
+        """Dissolves an Accountabuddy group (only usuable in your pair channel)"""
         #Let's a user quit their current group.
 
         #Makes it so that the specific channel to be deleted is easy to find.
@@ -294,32 +280,17 @@ class QueueCog(commands.Cog):
 
         await self.delete_role(ctx)
 
+        for voice in ctx.channel.category.voice_channels:
+            if voice.name == ctx.channel.name:
+                await voice.delete
+
         await ctx.channel.delete()
-
-    @commands.command()
-    async def talk(self, ctx):
-        #Lets a user make a voice channel
-
-        #Makes it so that the VC can only be made in a pair room
-        if (ctx.channel.category.name.lower() != "pairs"):
-            await ctx.send("You can only create talk rooms within your own room!")
-            return
         
-        home = self.bot.get_guild(self.homeserver)
-        category = discord.utils.get(home.categories, name="pairs")
-        
-        #Prevents two chat rooms
-        for x in category.voice_channels:
-            if (x.name == ctx.channel.name):
-                await ctx.send("You can't create two talk rooms!")
-                return
-
-        role = await self.find_role(ctx)
-        await self.talk_room(role.id, ctx.channel.name)
+        self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
+        await self.reacttointerestCog.listUpdate() #Update the list
 
     
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
-    @commands.has_permissions(ban_members=True)
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
         #Curious how the pairs handle multiple users. Hopefully not bad.
@@ -334,58 +305,90 @@ class QueueCog(commands.Cog):
         #User1 and User2 must not both be the message.author.id
         #Execute pair on user1 and user2
         
-        
+        def checkP(reaction, user):
+            return user.id == user2obj.id and str(reaction.emoji) == '👍'
         if(user2==None): #Author and...
             if(user1.id != ctx.author.id and await self.userInServer(user1.id,self.homeserver) == True): #User not caller and in server
-                await self.pair(ctx.author.id,user1.id,removeFromQueue=False)
-                await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(ctx.author.name,user1.name))
-                return
+                print("user1 is {}".format(user1))
+                print("This print statement occurs when user2==None")
+                user2=ctx.author
+                user1obj = ctx.author
+                user2obj = user1
+                await ctx.send("Waiting for a reply from {}!".format(user2obj.name))
+
+                mesg = await user2obj.send("If you want to pair with {}, click the '👍'!".format(user1obj.name))
+
+                await mesg.add_reaction('👍')
+                
+                try:
+                    reaction, user = await self.bot.wait_for('reaction_add', timeout=60.0, check=checkP)
+                    print("You have gotten to the bit where it waits for the reaction")
+                except asyncio.TimeoutError:
+                    await mesg.edit(content="Timeout, took to long to respond. Pairing aborted.")
+                    return
+                else:
+                    await self.pair(user1.id,user2.id,removeFromQueue=True)
+                    return
         else:#User 1 and user 2
             if((user1.id == ctx.author.id and user2.id == ctx.author.id) == False and user1.id != user2.id): #Both users are different and also not both the owner
                 if(await self.userInServer(user1.id,self.homeserver) and await self.userInServer(user2.id,self.homeserver)): #Both users in the server
+                    print("this appears if user2!=None")
                     await self.pair(user1.id,user2.id,removeFromQueue=False)
                     await ctx.send("Executing pair on {} and {}. Their entires in the queue were not modified.".format(user1.name,user2.name))
-                    return
+                    return    
+                    
         await ctx.send("Something went wrong.")
         
         
+    
+    @commands.command(hidden=True) #Not ever used by a user itself
+    async def upd(self,ctx):
+        self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
+        await self.reacttojoinCog.listUpdate() #Update the list
+        print("[upd ran]")
+    
+    
     
     async def queueUpdate(self):
         """Check for pairs and pair them if applicable."""
         #Check for possible pairings in the file.
         #If a pair is found, run pair() from another Cog and remove them from the queue list. They should now be paired!
         
-        ids, interestsproxy = kvGetKeysValues(queuefile) #Get keys and values from the file
+        ids, interestsproxy = get_sheet(spread, "Queue") #Get keys and values from the file
         
         #Split interests into a list of it's interests isntead of a single compressed string
         interests = []
-        for prox in interestsproxy:
-            interests.append(prox.split('$'))
-        
-        for i, userid in enumerate(ids): #Iterate through each user and look for a pair.
+        if(interestsproxy != None):
+            for prox in interestsproxy:
+                interests.append(prox.split('$'))
             
-            #if(userid in askedusers):
-            #    continue #If we're already waiting for a response from them. Code for later.
-            
-            thisinterest = interests[i] #An array of strings
-            for j, otherid in enumerate(ids): #Look through other users
-                if(otherid != userid): #Not self
-                    otherinterest = interests[j] #Possible partner's interests
-                    matches = set(thisinterest) & set(otherinterest)
-                    if(len(matches) > 0): #Has a match at all, not complicated
-                        #Pair 'em
-                        await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
-                        print("[queueUpdate] Paired {} and {}!!".format(userid,otherid))
-                        return await self.queueUpdate() #Start from the beginning because our array status has changed.
+            for i, userid in enumerate(ids): #Iterate through each user and look for a pair.
+                
+                #if(userid in askedusers):
+                #    continue #If we're already waiting for a response from them. Code for later.
+                
+                thisinterest = interests[i] #An array of strings
+                for j, otherid in enumerate(ids): #Look through other users
+                    if(otherid != userid): #Not self
+                        otherinterest = interests[j] #Possible partner's interests
+                        matches = set(thisinterest) & set(otherinterest)
+                        if(len(matches) > 0): #Has a match at all, not complicated
+                            #Pair 'em
+                            print("[queueUpdate] matches are: {}".format(matches))
+                            await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
+                            print("[queueUpdate] Paired {} and {}!!".format(userid,otherid))
+                            return await self.queueUpdate() #Start from the beginning because our array status has changed.
         
+        self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
+        await self.reacttojoinCog.listUpdate() #Update the list
         print("[queueUpdate] is running.")
     
     #TODO: FINISH leaderboard
     @commands.command()
     async def leaderboard(self,ctx):
-        #prints the leaderboard
+        """Prints the current leaderboard"""
 
-        leaderboard = kvMakeList(leaderboardfile)
+        leaderboard = get_sheet(spread, "Leaderboard")
         #this kvMakeList function comes from keyvaluemanagement.py.
         
         leaderboardlist = ""
@@ -401,7 +404,7 @@ class QueueCog(commands.Cog):
         return text
 
     
-    async def pair(self, user1: int, user2:int, interests:list = [], removeFromQueue:bool=True):# Pair and remove their entries from the queue
+    async def pair(self, user1: int, user2:int, interests:list = ['unknown'], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
         #Create channel
@@ -419,8 +422,10 @@ class QueueCog(commands.Cog):
         await self.giveWorkspace(user1,user2,interests) #Create role and channel
         
         if(removeFromQueue==True):
-            kvRemoveKey(queuefile,user1)
-            kvRemoveKey(queuefile,user2)
+            if(int(user1) != None):
+                deleteEntry(spread, "Queue", int(user1))
+                deleteEntry(spread, "Queue", int(user2))
+
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
@@ -439,7 +444,10 @@ class QueueCog(commands.Cog):
             interestsline = interests+"."
         else:
             if(len(interests)==1):
-                interestsline = interests[0]+'.'
+                try:
+                    interestsline = interests[0]+'.'
+                except Exception as e:
+                    interestsline = "."
             elif(len(interests) > 1):
                 for i, thing in enumerate(interests): #Iterate with an integer
                     if((i+1) == len(interests)): #Last entry
@@ -449,9 +457,11 @@ class QueueCog(commands.Cog):
                     else: #Anything else (3+ entries)
                         interestsline += "{}, ".format(thing)
         
-        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! When you're ready to set a goal for eachother, do **{}goal <goal>** and I'll help keep you two together for that goal.\nIf you want to unpair, use **{}abandon** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
+        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}end** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
+
+        await self.talk_room(role.id, channel_name)
     
-    
+    """
     #TODO: FINISH SELF.HELPTEXT()
     @commands.command()
     async def helpme(self,ctx):
@@ -465,7 +475,7 @@ class QueueCog(commands.Cog):
         text = pf+"join - Join a queue and get paired"
         
         return text
-    
+    """
     
     def getColor(self):
         return random.randint(0x7F7F7F, 0xFFFFFF) #50-100 brightness for each channel, so the color stays bright
@@ -526,6 +536,7 @@ class QueueCog(commands.Cog):
     #creates functionality for users to change their role color
     @commands.command()
     async def changecolor(self, ctx,*, color):
+        """IN PROGRESS: Allows you to change your group color (only for accountable users)"""
         listOfColors = {
                         "blue" : discord.Color.blue(),
                         "teal" : discord.Color.teal(),
@@ -572,7 +583,8 @@ class QueueCog(commands.Cog):
         for interest in interests:
             interestlist += interest+'\n'
         await ctx.send(interestlist);
-        
+
+    """    
     @commands.command()
     async def addgoal(self, ctx): # Need to remove the pfix and command from entry
         temp = kvGetKeys(goalsfile);
@@ -611,12 +623,15 @@ class QueueCog(commands.Cog):
         except ValueError:
             await ctx.send("You aren't on the list");
 
-        ctx.send(interestlist);
+        #ctx.send(interestlist);
+    """
     
-    @commands.Cog.listener()
-    async def on_voice_state_update(self, member, before, after):
-        if (after.channel == None and before.channel.name.lower() != "yellbox"):
-            await before.channel.delete()
+    @commands.command()
+    async def tutorial(self,ctx):
+        await ctx.send("Hi! Since this is your first time using accountabuddy, I've prepared a quick tutorial to get you on your way to self improvement.\nThe first and most important thing to do is determine what you want to work on! We have a varied selection of topics our users focus on, so try to find one of the following that fits your purpose, or is somewhat close to your purpose (if you want to try a paleo diet, dieting is the category you would want). Our categories are-\nJogging\nFrisbee Golf\nStudyHabits\nPizza\nBurgers\nSave Money\nMeditate\nReading\nLearn a Language\nSleep\nLearn to cook\nRunning\nImprove Concentration\nSocial Media Detox\nEarn More Money\nPractice Guitar\nDieting\nAccountabuddy\nWhen you have one of these you would like to work with someone else to improve at, the next thing you'll want to do is try and find someone with the same general improvement area! You're going to use a text command, where you will type !join followed by a space, and then your category of interest- as an example, lets use dieting. So, to start, I would type !join dieting. Once you do this, you will be on your way to helping someone else be accountable!")
 
+    
+    
+    
 def setup(bot):
     bot.add_cog(QueueCog(bot))

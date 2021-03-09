@@ -12,11 +12,11 @@ os.environ['DISPLAY'] = ':0' #linux req'd
 
 textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '!v'  #Changeable prefix for calling the bot.
+pfix = bot_config.pfix  #Changeable prefix for calling the bot.
 
 intents = discord.Intents.all()
 
-startup_extensions = ['blankcog','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
+startup_extensions = ['blankcog','react2join','react2interest','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
 def makeList(path):
     """Return a list of ints from this file."""
@@ -39,6 +39,7 @@ def removeFromList(path, key):
     with open(path, "w") as f:
         for x in list:
             if str(key) in x:
+                pass
             elif str(key) not in x:
                 f.write(x + "\n")
             else:
@@ -146,3 +147,4 @@ async def keylock(ctx):
 """
 
 bot.run(bot_config.token, reconnect=True)
+    
