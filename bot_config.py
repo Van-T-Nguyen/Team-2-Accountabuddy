@@ -1,9 +1,4 @@
-<<<<<<< Updated upstream
-
 token = ""
-=======
-token = "NzUzNzgyNTY0NzQ1MTE3Nzk3.X1rMuA.vkjVi5PORAVyYDdDCZIi8-hDXyg"
->>>>>>> Stashed changes
 
 DM_Channel = 753122017334526043 #DMs received by the bot will be forwarded here.
 

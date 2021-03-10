@@ -7,18 +7,18 @@ import bot_config
 from keyvaluemanagement import *
 from filemanagement import *
 from discord.ext.commands import has_permissions, MissingPermissions
+from quickstart import *
 import random
 
 
+spread = spread()
 interestsfile = "interests.txt"
-goalsfile = "goals.txt"
-leaderboardfile = "leaderboard.txt"
 datadir = "queue/"
-tiefile = datadir + "message2user.txt" #Ties a message ID with the associated user ID so it looks pretty.
+#tiefile = datadir + "message2user.txt" #Ties a message ID with the associated user ID so it looks pretty.
 
-queuefile = "queue/userqueue.txt" #Must be synchronized with queueup.py
 
-textfiles = [tiefile] #Ensures these files exist on launch
+
+#textfiles = [tiefile] #Ensures these files exist on launch
 
 joinemoji = "\U0001F4AC" # speech balloon, 💬
 
@@ -42,6 +42,7 @@ class ReactJoinCog(commands.Cog):
         intents = discord.Intents.default()
         intents.reactions = True #Requires this intent for raw reaction add listener
         
+        """
         for entry in textfiles:
             try:
                 f = open(entry,"r")
@@ -50,15 +51,8 @@ class ReactJoinCog(commands.Cog):
                 print("Making file: {}".format(entry))
                 f = open(entry,"w")
                 f.close()
-    
-    
-    
-    
-    
-    
-    
-    
-    
+        """
+
     async def userInServer(self,userid,guildid):
         """Returns true if a user is in a specific server. False otherwise."""
         
@@ -97,27 +91,100 @@ class ReactJoinCog(commands.Cog):
         
     """
     
-    
+        
     
     async def listUpdate(self):
         """Updates the list to reflect the current queue."""
         
         self.queueCog = self.bot.get_cog("QueueCog") #hopefully?
-        
         await self.statchan.trigger_typing()
         
-        queueIDs, queueValues = kvGetKeysValues(queuefile) #[ userid, interests:str ]
-        messageUIDs, messageObjIDs = kvGetKeysValues(tiefile) #[ userid, messageid ]
+        #queueIDs, queueValues = kvGetKeysValues(queuefile) #[ userid, interests:str ]
+        queueIDs, queueValues = get_sheet(spread, "Queue")
+        messageUIDs, messageObjIDs = get_sheet(spread, "Message") #[ userid, messageid ]
+        #print("DEBUGDEBUGDEBUG: {} {}".format(messageUIDs,messageObjIDs))
         
         #remove people not in queue
+        if(queueIDs == None): queueIDs = [] # Queue User IDs
+        if(queueValues == None): queueValues = [] # Queue User Interests
+        if(messageUIDs == None): messageUIDs = [] # message User IDs
+        if(messageObjIDs == None): messageObjIDs = [] # Message Object IDs
         
-        print("queueIDs: {}\nmessageUIDs: {}".format(queueIDs,messageUIDs))
+        knowninterests = kvGetKeys(interestsfile)
+        
+        rm1 = []
+        rm2 = [] #Buffers for later
+        
+        #print("queueIDs: {}\nmessageUIDs: {}".format(queueIDs,messageUIDs))
         for i in range(0,len(messageUIDs)):
-            if(messageUIDs[i] not in queueIDs): #Message's user ID isn't in queue
+            
+            #Check to see if our message content is out of date.
+            content = await self.statchan.fetch_message(messageObjIDs[i])
+            content = content.content #Fetch message content
+            if(messageUIDs[i] in queueIDs): #This user is in the queue...
+                expectedinterests = queueValues[queueIDs.index(str(messageUIDs[i]))].split('$') #List of expected interests in the message
+                
+                totalInterestsInMessage = 0
+                
+                
+                #print("[react2join listupdate] Expecting {} in {}".format(expectedinterests,content))
+                
+                for xx in knowninterests: #How many valid interests are in the message contents overall.
+                    xx = xx.strip()
+                    #print("\t\tChecking {}".format(xx))
+                    if(xx in content):
+                        #print("\t\tFound {}".format(xx))
+                        #exists.append(xx) #This interest found in the message.
+                        totalInterestsInMessage +=1
+                
+                wantedInterestsInMessage = 0
+                
+                for xx in expectedinterests: #How many of our expected interests are actually in the message?
+                    xx = xx.strip()
+                    #print("\tChecking {}".format(xx))
+                    if(xx in content):
+                        #print("\tFound {}".format(xx))
+                        wantedInterestsInMessage+=1
+                
+                if(wantedInterestsInMessage != len(expectedinterests)): wantedInterestsInMessage = -99 #Always fail
+                
+                #print("Found {} Exists {}".format(totalInterestsInMessage,wantedInterestsInMessage))
+                if(totalInterestsInMessage != wantedInterestsInMessage): #Mismatch in the message and database, message delete!
+                    DeleteMe = await self.statchan.fetch_message(messageObjIDs[i]) #Message to delete
+                    #kvRemoveKey(tiefile,messageUIDs[i])
+                    print("[react2join listupdate] Deleting a react2join message because of a message/database mismatch.")
+                    deleteEntry(spread, "Message", int(messageUIDs[i]))
+                    #messageUIDs.remove(messageUIDs[i])
+                    
+                    rm1.append(messageUIDs[i])
+                    rm2.append(messageObjIDs[i])
+                    
+                    try:
+                        await DeleteMe.delete()#This can 404 if a message was deleted by hand.
+                    except Exception as e:
+                        print("[react2join listUpdate] Exception: {}".format(e))
+                    continue
+        
+        for rm in rm1: messageUIDs.remove(rm)
+        for rm in rm2: messageObjIDs.remove(rm)
+        
+        for i in range(0,len(messageUIDs)):
+            
+            
+            #TODO: Else replaces the thing below.
+            if(messageUIDs[i] not in queueIDs): #Message's user ID isn't in queue 
+                #TODO: OR message content doesn't contain all interests listed.
                 DeleteMe = await self.statchan.fetch_message(messageObjIDs[i]) #Message to delete
-                kvRemoveKey(tiefile,messageUIDs[i])
-                await DeleteMe.delete()#This can 404 if a message was deleted by hand.
+                #kvRemoveKey(tiefile,messageUIDs[i])
+                deleteEntry(spread, "Message", int(messageUIDs[i]))
+                try:
+                    await DeleteMe.delete()#This can 404 if a message was deleted by hand.
+                except Exception as e:
+                    print("[react2join listUpdate] Exception: {}".format(e))
                 continue
+        
+        
+        
         
         #Add people in queue but NOT present
         for i in range(0,len(queueIDs)):
@@ -126,8 +193,8 @@ class ReactJoinCog(commands.Cog):
                 
                 interests = []
                 interests = (queueValues[i].split('$'))
-                print("queueValues: {}".format(queueValues[i]))
-                print("queueValues Split: {}".format(queueValues[i].split('$')))
+                #print("queueValues: {}".format(queueValues[i]))
+                #print("queueValues Split: {}".format(queueValues[i].split('$')))
                 
                 interestsline = "" #Format current interests given
                 if(isinstance(interests,str)): #String, so just add.
@@ -153,9 +220,7 @@ class ReactJoinCog(commands.Cog):
                 
                 await message.add_reaction(joinemoji)
                 
-                
-                
-                kvAddValue(tiefile,queueIDs[i],message.id)
+                write_sheet(spread, "Message", [str(queueIDs[i]), str(message.id)])
         
         #Get queue
         #Get text file
@@ -185,7 +250,7 @@ class ReactJoinCog(commands.Cog):
             return print("[react2join] Reaction was removed, not added, ignoring.")
         if(payload.channel_id != self.statchan.id): #Not the list channel, ignore.
             return print("[react2join] Not in the list channel, ignoring.")
-        validMessages = kvGetValues(tiefile) #All valid message IDs 
+        temp, validMessages = get_sheet(spread, "Message") #All valid message IDs, temp is to hold useless data
         if(str(payload.message_id) not in validMessages): #Not a message we can properly respond to, ignore
             return print("[react2join] Reaction added to a message I can't use, ignoring.")
         
@@ -203,16 +268,27 @@ class ReactJoinCog(commands.Cog):
                     return
             
             #Get target user id from the tie list
+            targetID = 0
+            ids, messages = get_sheet(spread, "Message")
+            print("[aaaaaaaaaaaa] ids: {}, messages: {}".format(ids,messages))
+            for i in range(0,len(messages)):
+                if int(messages[i]) == payload.message_id:
+                    targetID = int(ids[i])
+                    break
             
-            targetID = int(kvGetKey2(tiefile,str(payload.message_id))) #Works backwards to find the user ID associated with the message
+            #targetID = int(kvGetKey2(tiefile,str(payload.message_id))) #Works backwards to find the user ID associated with the message
             
             if(targetID == payload.user_id): #Can't join yourself!
                 #await user.send("You can't join yourself!") #Silence is fine
                 print("[react2join] Can't pair a user with themselves.")
                 return
             
-            interests = kvGetValue(queuefile,targetID) #gets interests of the target user, the only interest list we have
-            interestslist = (interests.split('$'))
+            queueIDs, queueValues = get_sheet(spread,"Queue")
+            
+            #interests = kvGetValue(queuefile,targetID) #gets interests of the target user, the only interest list we have
+            print("[react2join React detection] queueValues is {}".format(queueValues))
+            #interestslist = (queueValues[queueIDs.index(str(targetID))].split('$'))
+            interestslist = queueValues[queueIDs.index(str(targetID))].split('$')
             
             self.queueCog = self.bot.get_cog("QueueCog") 
             await self.queueCog.pair(payload.user_id,targetID,interestslist) #Done
@@ -230,3 +306,34 @@ class ReactJoinCog(commands.Cog):
 
 def setup(bot):
     bot.add_cog(ReactJoinCog(bot))
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+
+    
+
+    
+    
+    
