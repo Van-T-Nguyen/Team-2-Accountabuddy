@@ -167,8 +167,10 @@ class ReactInterestCog(commands.Cog):
         
         print("[react2interest listUpdate] Querying reactions in interest channel")
         
-        async def addinterest(userid:int,interest:str): #Adds a user:interest pair to our temporary databse, to push off to the main one.
+        async def addinterest(userid:int,interest:str,react=None,reactor=None): #Adds a user:interest pair to our temporary databse, to push off to the main one.
             if(userid in blacklist):
+                #if(react!=None and reactor!=None):
+                    #await react.remove(reactor);
                 return #Do nothing if we're blacklisting this peep.
             if(userid not in whitelist):
                 #Check to see if they're paired.
@@ -177,6 +179,8 @@ class ReactInterestCog(commands.Cog):
                 for x in user.roles:
                     if x.name == "Accountabuds": 
                         print("[react2interest listUpdate] Ignoring already paired user")
+                        #if(react!=None and reactor!=None):
+                            #await react.remove(reactor);
                         blacklist.append(userid)
                         continue #Ignore if this user is already queued.
                 whitelist.append(userid) #Whitelist them if they made it through.
@@ -197,7 +201,7 @@ class ReactInterestCog(commands.Cog):
                         for r2 in reactors:
                             if(r2.id != self.bot.user.id): #Not us, don't queue ourselves!
                                 print("[react2interest listupdate] {} reacted to {}".format(r2.id,m.content))
-                                await addinterest(r2.id,m.content) #Add this user's ID to the dictionary, along with the content of the message (the interest)
+                                await addinterest(r2.id,m.content,r,r2) #Add this user's ID to the dictionary, along with the content of the message (the interest)
         
         #At this point, queueout is a dictionary with user IDs, each id having a string of every interest they're interested in.
         
