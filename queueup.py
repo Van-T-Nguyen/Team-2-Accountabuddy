@@ -265,7 +265,9 @@ class QueueCog(commands.Cog):
             await x.dm_channel.send("I hope it was a fruitful endeavor.")
         
         print(role.permissions)
+        roleID = role.id
         await role.delete()
+        deleteEntry(spread, "Groups", roleID)
         return
 
     @commands.command()
@@ -425,7 +427,6 @@ class QueueCog(commands.Cog):
             if(int(user1) != None):
                 deleteEntry(spread, "Queue", int(user1))
                 deleteEntry(spread, "Queue", int(user2))
-
     
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
@@ -457,6 +458,9 @@ class QueueCog(commands.Cog):
                     else: #Anything else (3+ entries)
                         interestsline += "{}, ".format(thing)
         
+        groupEntry = [role.id, channel_name, 0, user1, None, user2, None]
+        write_sheet(spread, "Groups", groupEntry)
+
         await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}end** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
 
         await self.talk_room(role.id, channel_name)
