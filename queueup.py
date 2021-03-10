@@ -16,7 +16,15 @@ datadir = "queue/"
 queuefile = datadir + "userqueue.txt"
 channelpairs = datadir + "channelspairs.txt"
 
+<<<<<<< Updated upstream
 textfiles = [queuefile, channelpairs] #Ensures these files exist on launch
+=======
+spread = spread()
+
+textfiles = [channelpairs] #Ensures these files exist on launch
+
+confirm_emoji = "👍"
+>>>>>>> Stashed changes
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -295,6 +303,13 @@ class QueueCog(commands.Cog):
 
         await self.delete_role(ctx)
 
+<<<<<<< Updated upstream
+=======
+        for voice in ctx.channel.category.voice_channels:
+            if voice.name == ctx.channel.name:
+                await voice.delete()
+
+>>>>>>> Stashed changes
         await ctx.channel.delete()
 
     @commands.command()
@@ -652,5 +667,41 @@ class QueueCog(commands.Cog):
         if (after.channel == None and before.channel.name.lower() != "yellbox"):
             await before.channel.delete()
 
+<<<<<<< Updated upstream
+=======
+    @commands.Cog.listener()
+    #@commands.check(processable) #check doesn't work in events, only commands
+    async def on_raw_reaction_add(self, payload):
+        
+        #This listener is different and will catch all reacts, even reacts that occurr on messages that aren't in the cache.
+        #This is because messages can persist across bot restarts in this case. It uses a Payload object.
+        
+        
+        if(payload.user_id == self.bot.user.id): #The bot made this react, ignore
+            return print("[react2join] Bot made react, ignoring.")
+        if(payload.guild_id is None):#None guild_ids are in DMs, ignore
+            return print("[react2join] DM reaction, ignoring.")
+        if(payload.event_type == "REACTION_REMOVE"):#Reaction removed, ignore.
+            return print("[react2join] Reaction was removed, not added, ignoring.")
+        if(payload.channel_id != 811364449881161786): #Not the welcome channel, ignore.
+            return print("[react2join] Not in the welcome channel, ignoring.")
+        
+
+        if(payload.emoji.name == confirm_emoji): #User confirmed to read the message
+            
+            for role in payload.member.guild.roles:
+                if (role.name == "member"):
+                    member = role
+
+            for role in payload.member.roles:
+                if (role == member):
+                    return print("They've already acknowledged the rules")
+
+            await payload.member.add_roles(member)
+        
+        return
+    
+    
+>>>>>>> Stashed changes
 def setup(bot):
     bot.add_cog(QueueCog(bot))
