@@ -12,22 +12,22 @@ import asyncio
 
 
 class sendDaily(commands.Cog):
-	def __init__(self, bot):
-		self.bot = bot
-		self.homeserver = bot_config.Home_Server
-		self.day = 1
-		self.limit = 0
-		self.combo = 0
-		self.ctx = None
-		self.listOfChannels = []
-		self.dailyMsg.start()
+    def __init__(self, bot):
+        self.bot = bot
+        self.homeserver = bot_config.Home_Server
+        self.day = 1
+        self.limit = 0
+        self.combo = 0
+        self.ctx = None
+        self.listOfChannels = []
+        self.dailyMsg.start()
 
-	@commands.command()
-	async def daily(self, ctx):
-		await ctx.send("Attempting to send messages every day")
-		self.ctx = ctx
-		self.day = 1
-		self.dailyMsg.start()
+    @commands.command()
+    async def daily(self, ctx):
+        await ctx.send("Attempting to send messages every day")
+        self.ctx = ctx
+        self.day = 1
+        self.dailyMsg.start()
 
     @commands.command()
     async def stop(self, ctx):
@@ -35,46 +35,50 @@ class sendDaily(commands.Cog):
         await self.ctx.send("Admin stop")
         self.dailyMsg.stop()
 
-	@tasks.loop(minutes=1)
-	async def dailyMsg(self):
-		for channel in self.listOfChannels:
-			await self.createMessage(channel)
+    @tasks.loop(minutes=1)
+    async def dailyMsg(self):
+        for channel in self.listOfChannels:
+            await self.createMessage(channel)
 
-	@commands.Cog.listener()
-	async def on_guild_channel_create(self, channel):
-		if(not isinstance(channel,discord.VoiceChannel)):"""
-			self.day = 1
-			self.combo = 0
-			await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
-			self.ctx = channel
-			self.dailyMsg.start()"""
-		print("About to add: ")
-		print(channel)
-		self.listOfChannels.append(channel)
-		print(self.listOfChannels)
+    @commands.Cog.listener()
+    async def on_guild_channel_create(self, channel):
+        if(not isinstance(channel,discord.VoiceChannel)):
+            """
+            self.day = 1
+            self.combo = 0
+            await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
+            self.ctx = channel
+            self.dailyMsg.start()"""
+            print("About to add: ")
+            print(channel)
+            self.listOfChannels.append(channel)
+            print(self.listOfChannels)
 
 
 
-	@commands.Cog.listener()
-	async def on_guild_channel_delete(self, channel):
-		if(not isinstance(channel,discord.VoiceChannel)):
-			print("About to delete: ")
-			print(channel)
-			self.listOfChannels.remove(channel)
-			print(self.listOfChannels)
+    @commands.Cog.listener()
+    async def on_guild_channel_delete(self, channel):
+        if(not isinstance(channel,discord.VoiceChannel)):
+            print("About to delete: ")
+            print(channel)
+            try:
+                self.listOfChannels.remove(channel)
+            except Exception as e:
+                print("[daily onGuildChannelDelete] caught exception: {}".format(e))
+            print(self.listOfChannels)
 
-	async def createMessage(self, ctx):
-		string = "AccountaBuddy checking in. How are you doing on your task?"
-		#dayCount = "It is day {}.".format(curDay)
-		message = await ctx.send(string)
-		await message.add_reaction('\U0001F44B')
-		#await ctx.send(dayCount)
+    async def createMessage(self, ctx):
+        string = "AccountaBuddy checking in. How are you doing on your task?"
+        #dayCount = "It is day {}.".format(curDay)
+        message = await ctx.send(string)
+        await message.add_reaction('\U0001F44B')
+        #await ctx.send(dayCount)
 
-	@commands.Cog.listener()
-	async def on_reaction_add(self, react, user):
-		numReact = react.count
-		if (numReact > 2 and react.emoji ==  '\U0001F44B'):
-			await react.message.channel.send("Thanks for checking in.")
+    @commands.Cog.listener()
+    async def on_reaction_add(self, react, user):
+        numReact = react.count
+        if (numReact > 2 and react.emoji ==  '\U0001F44B'):
+            await react.message.channel.send("Thanks for checking in.")
 
 
 def setup(bot):

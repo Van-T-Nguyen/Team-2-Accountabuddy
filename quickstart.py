@@ -141,6 +141,8 @@ def write_sheet(spreadsheet, sheet, values:list):
 def deleteEntry(spread, sheet, id): # Deletes the row of the associated ID.
     # Gets the values held in the spreadsheet
     index = findValue(spread, sheet, id)
+    if(index == None):
+        return print("[quickstart deleteEntry] index returned none, aborting; database list possibly empty")
     sheet_id = get_id(sheet)
     delete_body = {
         "requests" : {

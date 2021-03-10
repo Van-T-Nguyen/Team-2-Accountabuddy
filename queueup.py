@@ -276,7 +276,7 @@ class QueueCog(commands.Cog):
         await self.delete_role(ctx)
 
         for voice in ctx.channel.category.voice_channels:
-            if voice.name == ctx.channel.name:
+            if voice.name.lower() == ctx.channel.name.lower():
                 await voice.delete()
 
         await ctx.channel.delete()
@@ -677,5 +677,5 @@ class QueueCog(commands.Cog):
         Stops daily check-in
     """.format(bot_config.pfix))
 
-    def setup(bot):
-        bot.add_cog(QueueCog(bot))
+def setup(bot):
+    bot.add_cog(QueueCog(bot))
