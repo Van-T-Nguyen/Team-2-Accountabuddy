@@ -38,6 +38,8 @@ def get_id(sheet):
         return 2101048164
     elif sheet == "Leaderboard":
         return 322611983
+    elif sheet == "Interests":
+        return 1368843475
 
 def get_sheet(spreadsheet, sheet):
     result = spreadsheet.values().get(spreadsheetId=SPREADSHEET_ID,
@@ -64,6 +66,9 @@ def get_sheet(spreadsheet, sheet):
     elif (sheet == "Leaderboard"):
         ids, scores = get_leaderboard(values)
         return ids, scores
+    elif (sheet == "Interests"):
+        interests, categories = get_interests(values)
+        return interests, categories
 
 def get_queue(values):
     ids = []    
@@ -112,6 +117,14 @@ def get_leaderboard(values):
         ids.append(row[0])
         scores.append(row[1])
     return ids, scores
+
+def get_interests(values):
+    interests = []
+    categories = []
+    for row in values:
+        interests.append(row[0])
+        categories.append(row[1])
+    return interests, categories
 
 def write_sheet(spreadsheet, sheet, values:list):
     values = [values]
