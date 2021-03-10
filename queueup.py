@@ -630,7 +630,35 @@ class QueueCog(commands.Cog):
     async def tutorial(self,ctx):
         await ctx.send("Hi! Since this is your first time using accountabuddy, I've prepared a quick tutorial to get you on your way to self improvement.\nThe first and most important thing to do is determine what you want to work on! We have a varied selection of topics our users focus on, so try to find one of the following that fits your purpose, or is somewhat close to your purpose (if you want to try a paleo diet, dieting is the category you would want). Our categories are-\nJogging\nFrisbee Golf\nStudyHabits\nPizza\nBurgers\nSave Money\nMeditate\nReading\nLearn a Language\nSleep\nLearn to cook\nRunning\nImprove Concentration\nSocial Media Detox\nEarn More Money\nPractice Guitar\nDieting\nAccountabuddy\nWhen you have one of these you would like to work with someone else to improve at, the next thing you'll want to do is try and find someone with the same general improvement area! You're going to use a text command, where you will type !join followed by a space, and then your category of interest- as an example, lets use dieting. So, to start, I would type !join dieting. Once you do this, you will be on your way to helping someone else be accountable!")
 
+
+    @commands.command(aliases=['help'])
+    async def help_command(self, ctx):
+        await ctx.send("""
+Useful Commands:
+        
+**{0}abandon**
+    Abandon a pairing
     
+**{0}dropout** 
+    Drop from a queue
+    
+**{0}help**
+    Shows this message
+    
+**{0}list**
+    Displays the interests that you are currently queued for.
+    
+**{0}tutorial**
+    Displays the tutorial for using Accountabuddy. 
+    This is useful if you're new to Accountabuddy. 
+    
+**{0}daily**
+    Initiates daily check-in from Accountabuddy
+    
+**{0}stop**
+    Stops daily check-in
+""".format(bot_config.pfix))
+
     
     
 def setup(bot):
