@@ -74,7 +74,7 @@ def get_prefix(bot, msg):
 
 desc = '''AccountaBuddy'''
 
-bot = commands.Bot(command_prefix=get_prefix,description=desc, intents=intents)
+bot = commands.Bot(command_prefix=get_prefix,description=desc, intents=intents, help_command=None)
 
 
 @bot.event

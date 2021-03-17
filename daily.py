@@ -43,7 +43,12 @@ class sendDaily(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_channel_create(self, channel):
         if(not isinstance(channel,discord.VoiceChannel)):
-            
+            """
+            self.day = 1
+            self.combo = 0
+            await channel.send("Hey all, AccountaBuddy here. As part of keeping you accountable:tm:, I'll be sending daily messages.")
+            self.ctx = channel
+            self.dailyMsg.start()"""
             print("About to add: ")
             print(channel)
             self.listOfChannels.append(channel)
@@ -56,7 +61,10 @@ class sendDaily(commands.Cog):
         if(not isinstance(channel,discord.VoiceChannel)):
             print("About to delete: ")
             print(channel)
-            self.listOfChannels.remove(channel)
+            try:
+                self.listOfChannels.remove(channel)
+            except Exception as e:
+                print("[daily onGuildChannelDelete] caught exception: {}".format(e))
             print(self.listOfChannels)
 
     async def createMessage(self, ctx):
@@ -66,8 +74,12 @@ class sendDaily(commands.Cog):
         await message.add_reaction('\U0001F44B')
         #await ctx.send(dayCount)
 
-    async def comboMsg(self, ctx):
-        await ctx.send("Thanks for checking in. Current score: {}".format(self.combo))
+    @commands.Cog.listener()
+    async def on_reaction_add(self, react, user):
+        numReact = react.count
+        if (numReact > 2 and react.emoji ==  '\U0001F44B'):
+            await react.message.channel.send("Thanks for checking in.")
+
 
 def setup(bot):
     bot.add_cog(sendDaily(bot))

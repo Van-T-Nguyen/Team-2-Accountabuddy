@@ -17,7 +17,9 @@ channelpairs = datadir + "channelspairs.txt"
 
 spread = spread()
 
-textfiles = [channelpairs] #Ensures these files exist on launc
+textfiles = [channelpairs] #Ensures these files exist on launch
+
+confirm_emoji = "👍"
 
 
 #Changing the name of this class should also be reflected in the setup() function at the bottom of the code.
@@ -106,11 +108,8 @@ class QueueCog(commands.Cog):
                     await ctx.send("We'll put you on the list instead...\n\n")
 
         #Normal joining if they pass all the checks.
-
         
-
         #List interests
-        
         interests = kvGetKeys(interestsfile)
         #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
         
@@ -158,8 +157,6 @@ class QueueCog(commands.Cog):
             else:
                 break
             
-            
-        
         """
         
         debugtext = "Parsed interests: {}\n".format(readinterests)
@@ -231,14 +228,12 @@ class QueueCog(commands.Cog):
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             pass"""
     
-    
     async def addToQueue(self,ctx, user,interests:list,sendDM=False):
         """Add a user to the queue with these interests. Returns an integer."""
         #Error codes:
         #0 = No error
         #1 = Unable to send DM
-        
-        
+          
         #queuefile
         if(findValue(spread, "Queue", user.id) is not None): #Key already exists
             pass #No error... yet.
@@ -265,9 +260,7 @@ class QueueCog(commands.Cog):
             await x.dm_channel.send("I hope it was a fruitful endeavor.")
         
         print(role.permissions)
-        roleID = role.id
         await role.delete()
-        deleteEntry(spread, "Groups", roleID)
         return
 
     @commands.command()
@@ -283,15 +276,14 @@ class QueueCog(commands.Cog):
         await self.delete_role(ctx)
 
         for voice in ctx.channel.category.voice_channels:
-            if voice.name == ctx.channel.name:
-                await voice.delete
+            if voice.name.lower() == ctx.channel.name.lower():
+                await voice.delete()
 
         await ctx.channel.delete()
         
         self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
         await self.reacttointerestCog.listUpdate() #Update the list
 
-    
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
@@ -341,16 +333,12 @@ class QueueCog(commands.Cog):
                     
         await ctx.send("Something went wrong.")
         
-        
-    
     @commands.command(hidden=True) #Not ever used by a user itself
     async def upd(self,ctx):
         self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
         await self.reacttojoinCog.listUpdate() #Update the list
         print("[upd ran]")
-    
-    
-    
+   
     async def queueUpdate(self):
         """Check for pairs and pair them if applicable."""
         #Check for possible pairings in the file.
@@ -405,7 +393,6 @@ class QueueCog(commands.Cog):
 
         return text
 
-    
     async def pair(self, user1: int, user2:int, interests:list = ['unknown'], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
@@ -427,7 +414,7 @@ class QueueCog(commands.Cog):
             if(int(user1) != None):
                 deleteEntry(spread, "Queue", int(user1))
                 deleteEntry(spread, "Queue", int(user2))
-    
+
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
         #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
@@ -458,9 +445,6 @@ class QueueCog(commands.Cog):
                     else: #Anything else (3+ entries)
                         interestsline += "{}, ".format(thing)
         
-        groupEntry = [role.id, channel_name, 0, user1, None, user2, None]
-        write_sheet(spread, "Groups", groupEntry)
-
         await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}end** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
 
         await self.talk_room(role.id, channel_name)
@@ -483,7 +467,6 @@ class QueueCog(commands.Cog):
     
     def getColor(self):
         return random.randint(0x7F7F7F, 0xFFFFFF) #50-100 brightness for each channel, so the color stays bright
-    
     
     #Creates a new role and assigns it to an Accountabuddy pair
     #Logan: I've added optional list support and made a color maker function above.
@@ -574,7 +557,6 @@ class QueueCog(commands.Cog):
     
     #called by !changecolor @role dark green
    
-
     @commands.command()
     async def li(self, ctx):
         """
@@ -634,8 +616,66 @@ class QueueCog(commands.Cog):
     async def tutorial(self,ctx):
         await ctx.send("Hi! Since this is your first time using accountabuddy, I've prepared a quick tutorial to get you on your way to self improvement.\nThe first and most important thing to do is determine what you want to work on! We have a varied selection of topics our users focus on, so try to find one of the following that fits your purpose, or is somewhat close to your purpose (if you want to try a paleo diet, dieting is the category you would want). Our categories are-\nJogging\nFrisbee Golf\nStudyHabits\nPizza\nBurgers\nSave Money\nMeditate\nReading\nLearn a Language\nSleep\nLearn to cook\nRunning\nImprove Concentration\nSocial Media Detox\nEarn More Money\nPractice Guitar\nDieting\nAccountabuddy\nWhen you have one of these you would like to work with someone else to improve at, the next thing you'll want to do is try and find someone with the same general improvement area! You're going to use a text command, where you will type !join followed by a space, and then your category of interest- as an example, lets use dieting. So, to start, I would type !join dieting. Once you do this, you will be on your way to helping someone else be accountable!")
 
+    @commands.Cog.listener()
+    #@commands.check(processable) #check doesn't work in events, only commands
+    async def on_raw_reaction_add(self, payload):
+        
+        #This listener is different and will catch all reacts, even reacts that occurr on messages that aren't in the cache.
+        #This is because messages can persist across bot restarts in this case. It uses a Payload object.
+        
+        
+        if(payload.user_id == self.bot.user.id): #The bot made this react, ignore
+            return print("[react2join] Bot made react, ignoring.")
+        if(payload.guild_id is None):#None guild_ids are in DMs, ignore
+            return print("[react2join] DM reaction, ignoring.")
+        if(payload.event_type == "REACTION_REMOVE"):#Reaction removed, ignore.
+            return print("[react2join] Reaction was removed, not added, ignoring.")
+        if(payload.channel_id != 811364449881161786): #Not the welcome channel, ignore.
+            return print("[react2join] Not in the welcome channel, ignoring.")
+        
+
+        if(payload.emoji.name == confirm_emoji): #User confirmed to read the message
+            
+            for role in payload.member.guild.roles:
+                if (role.name == "member"):
+                    member = role
+
+            for role in payload.member.roles:
+                if (role == member):
+                    return print("They've already acknowledged the rules")
+
+            await payload.member.add_roles(member)
+        
+        return
+
+
+    @commands.command(aliases=['help'])
+    async def help_command(self, ctx):
+        await ctx.send("""
+    Useful Commands:
+        
+    **{0}abandon**
+    Abandon a pairing
     
-    
-    
+        **{0}dropout** 
+        Drop from a queue
+
+    **{0}help**
+        Shows this message
+
+    **{0}list**
+        Displays the interests that you are currently queued for.
+
+    **{0}tutorial**
+        Displays the tutorial for using Accountabuddy. 
+        This is useful if you're new to Accountabuddy. 
+
+    **{0}daily**
+        Initiates daily check-in from Accountabuddy
+
+    **{0}stop**
+        Stops daily check-in
+    """.format(bot_config.pfix))
+
 def setup(bot):
     bot.add_cog(QueueCog(bot))
