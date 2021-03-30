@@ -556,7 +556,62 @@ class QueueCog(commands.Cog):
         await ctx.send("You do not have that role")
     
     #called by !changecolor @role dark green
+   @commands.command()
+    async def bl(self,ctx):
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist") 
+        user=ctx.author.id
+        userx=ctx.message.mentions[0].id
+
+        index=findValue(spread,"Blacklist", str(user))
+        if(index!=None): #if user already in bl userid 
+            index+=2
+            xvar=getValue(spread,"Blacklist",str(user))
+            tvar=xvar[1].split(";")
+            if (str(userx) in tvar):
+                await ctx.send("This user is already blacklisted")
+        
+            else: #user not on blacklist, blacklist user 
+                #add userx to black list column 
+                editValue(spread,"Blacklist",str(user),1,str(userx),True)
+                await ctx.send ("User has been blacklisted")
+        else: #add userx to black list column 
+            write_sheet(spread, "Blacklist", [str(user), str(userx)])
+            await ctx.send ("User has been blacklisted")
+
+    @commands.command()
+    async def rbl(self, ctx):
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist")
+        user=ctx.author.id
+        userx= ctx.message.mentions[0].id
+
+        index=findValue(spread,"Blacklist", str(user))
+        if(index!=None): #if user already in bl userid 
+            xvar=getValue(spread,"Blacklist", str(user))
+            tvar=xvar[1].split(";")
+            if (len(tvar) == 1):
+                deleteEntry(spread, "Blacklist", str(user))
+            elif (str(userx) in tvar):
+                tstring=""
+                for blocked in tvar:
+                    if blocked==str(userx):
+                        tvar.remove(blocked)
+                    else:
+                        if tstring == "":
+                            tstring=tstring+blocked
+                        else:
+                            tstring=";"+tstring+blocked 
+                editValue(spread,"Blacklist",str(user),1,tstring,False)
+                await ctx.send ("User has been removed from your blacklist")
+            else: 
+                await ctx.send("This user is not on your blacklist")
+        else: 
+            await ctx.send("You don't have anyone blacklisted") 
    
+    
+  
+    
     @commands.command()
     async def li(self, ctx):
         """
