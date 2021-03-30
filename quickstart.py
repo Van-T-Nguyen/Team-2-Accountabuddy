@@ -64,8 +64,8 @@ def get_sheet(spreadsheet, sheet):
         ids, scores, link1, goals1, link2, goals2 = get_groups(values)
         return ids, scores, link1, link2
     elif (sheet == "Leaderboard"):
-        ids, scores = get_leaderboard(values)
-        return ids, scores
+        ids, names, scores = get_leaderboard(values)
+        return ids, names, scores
     elif (sheet == "Interests"):
         interests, categories = get_interests(values)
         return interests, categories
@@ -115,11 +115,13 @@ def get_groups(values):
 
 def get_leaderboard(values):
     ids = []    
+    names = []
     scores = []
     for row in values:
         ids.append(row[0])
-        scores.append(row[1])
-    return ids, scores
+        names.append(row[1])
+        scores.append(row[2])
+    return ids, names, scores
 
 def get_interests(values):
     interests = []
@@ -144,7 +146,7 @@ def write_sheet(spreadsheet, sheet, values:list):
     }
     result = spreadsheet.values().append(
     spreadsheetId=SPREADSHEET_ID, range=sheet,
-    valueInputOption="RAW", body=body).execute()
+    valueInputOption="USER_ENTERED", body=body).execute()
     print('{0} cells appended.'.format(result \
                                        .get('updates') \
                                        .get('updatedCells')))
@@ -172,9 +174,10 @@ def deleteEntry(spread, sheet, id): # Deletes the row of the associated ID.
     sortSheet(spread, sheet)
 
 def editValue(spread, sheet, id, colNum, value, append = False): # Target is to be defined as the number of the column. I.E. Column B = Target 2
-    index = findValue(spread, sheet, id) # Get the location that we will be updating our value at, in case it changed
+    index = findValue(spread, sheet, id) + 2 # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
     # Here we obtain the row that we are hoping to change
-    temp = get_sheet(spread, sheet)[index]
+    result = spread.values().get(spreadsheetId = SPREADSHEET_ID, range = sheet).execute()
+    temp = result.get("values")[index-1]
     # Here we check if we want to append our value into the cell specified. This is used for adding goals.
     if append:
         temp[colNum] = temp[colNum] + ";" + str(value)
@@ -192,7 +195,12 @@ def editValue(spread, sheet, id, colNum, value, append = False): # Target is to 
     }
     # Our current approach is to update the entire row but only change one cell at a time.
     result = spread.values().update(spreadsheetId = SPREADSHEET_ID, 
-                            range = range, valueInputOption = "RAW", body = value_Range_Body).execute()
+                            range = range, valueInputOption = "USER_ENTERED", body = value_Range_Body).execute()
+
+def getValue(spread, sheet, id):
+    index = findValue(spread, sheet, id) + 2
+    result = spread.values().get(spreadsheetId = SPREADSHEET_ID, range = sheet + "!A" + str(index) + ":" + str(index)).execute()
+    return result.get("values")[0] # Get the value at 0 because this function returns a list of the list we get from Google Sheets
 
 def sortSheet(spread, sheet, sortCol = 0, order = "ASCENDING"):
     sheet_id = get_id(sheet)
@@ -251,9 +259,13 @@ def spread():
     return sheet
 
 if __name__ == '__main__':
-    spreadsheet = spread()
-    write_sheet(spreadsheet, "Blacklist", ["162777143028350976", "162777143028350976"])
-    editValue(spreadsheet, "Blacklist", "162777143028350976", 1, "262777143028350976", True)
-    #deleteEntry(spreadsheet, "Users", 162777143028350976)
-    get_sheet(spreadsheet, "Message")
-    #print(findValue(spreadsheet, "Groups", 112))
+    spread = spread()
+    # sortSheet(spread, "Leaderboard", 2)
+    # userVals = getValue(spread, "Leaderboard", "189543454563368960")
+    # print("User " + userVals[0] + "'s name is " + userVals[1] + " and their score is " + userVals[2])
+    # index = findValue(spread, "Leaderboard", "189543454563368960")
+    # ids = []
+    # names = []
+    # scores = []
+    # ids, names, scores = get_sheet(spread, "Leaderboard")
+    # editValue(spread, "Leaderboard", "189543454563368960", 2, int(scores[index]) + 1, False)
