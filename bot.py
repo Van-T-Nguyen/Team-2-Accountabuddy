@@ -16,7 +16,7 @@ textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here e
 
 pfix = '/'  #Changeable prefix for calling the bot.
 
-startup_extensions = ['blankcog','queueup','daily'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
+startup_extensions = ['blankcog','queueup','daily','leaderboard'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
 def makeList(path):
     """Return a list of ints from this file."""
@@ -55,6 +55,7 @@ def isOnList(path,item):
         if( str(item) == thing):
             #print("{} is {}".format(str(item),thing))
             return True
+            
     
     return False
 
