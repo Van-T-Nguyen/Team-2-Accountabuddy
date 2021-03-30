@@ -153,23 +153,32 @@ def write_sheet(spreadsheet, sheet, values:list):
 
 def deleteEntry(spread, sheet, id): # Deletes the row of the associated ID.
     # Gets the values held in the spreadsheet
-    index = findValue(spread, sheet, id)
+    index = findValue(spread, sheet, id) + 2
     if(index == None):
-        return print("[quickstart deleteEntry] index returned none, aborting; database list possibly empty")
+        print("[quickstart deleteEntry] index returned none, aborting; database list possibly empty")
+        return
     sheet_id = get_id(sheet)
-    delete_body = {
-        "requests" : {
-            "deleteDimension": {
-                "range": {
-                    "sheetId": sheet_id,
-                    "dimension": "ROWS",
-                    "startIndex": index - 1,
-                    "endIndex": index
-                }
-            }
-        }
+    # delete_body = [
+    #     {
+    #         "requests" : [{
+    #             "deleteDimension": {
+    #                 "range": {
+    #                     "sheetId": sheet_id,
+    #                     "dimension": "ROWS",
+    #                     "startIndex": index,
+    #                     "endIndex": index+1
+    #                 }
+    #             }
+    #         }
+    #         ]
+    #     }
+    # ]
+    clear_body = {
+        "ranges" : [
+            sheet + "!A" + str(index) + ":" + str(index)
+        ]
     }
-    result = spread.batchUpdate(spreadsheetId = SPREADSHEET_ID, body = delete_body).execute()
+    result = spread.values().batchClear(spreadsheetId = SPREADSHEET_ID, body = clear_body).execute()
     
     sortSheet(spread, sheet)
 
