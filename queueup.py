@@ -324,22 +324,6 @@ class QueueCog(commands.Cog):
         self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
         await self.reacttointerestCog.listUpdate()  # Update the list
 
-    @commands.command(aliases=['pair'],
-                      hidden=True)  # pair must be aliased because we have a function named pair already
-    async def forcePair(self, ctx, user1: discord.User, user2: discord.User = None):
-        # Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
-        # Curious how the pairs handle multiple users. Hopefully not bad.
-
-        # User2 == None:
-        # User1 must not be message.author
-        # User1 must be in the server
-        # Execute pair on author.id and user1
-        # else:
-        # User1 and User2 must be in the server
-        # User1 and User2 must not be equal
-        # User1 and User2 must not both be the message.author.id
-        # Execute pair on user1 and user2
-
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
@@ -638,7 +622,7 @@ class QueueCog(commands.Cog):
         await ctx.send("You do not have that role")
     
     #called by !changecolor @role dark green
-   @commands.command()
+    @commands.command()
     async def bl(self,ctx):
         blacklist = get_sheet(spread, "Blacklist")
         #users, blacklisted = get_sheet(spread, "Blacklist") 
