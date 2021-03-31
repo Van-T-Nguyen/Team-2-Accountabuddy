@@ -286,6 +286,17 @@ class QueueCog(commands.Cog):
             await ctx.send("You can only abandon groups in your meeting room!")
             return
 
+        for callerrole in ctx.message.author.roles:
+            if (callerrole.name.lower() == "accountabuds"):  # the role is called accountabuds
+                members = callerrole.members
+                try:
+                    for m in members:
+                        if (m != ctx.message.author):
+                            otherUser = m.id
+                except Exception as e:
+                    print("[endPair error] Couldn't remove the author's user from the role (Which should never happen) or the role only had one member")
+                    otherUser = None
+
         await self.delete_role(ctx)
 
         for voice in ctx.channel.category.voice_channels:
@@ -293,9 +304,41 @@ class QueueCog(commands.Cog):
                 await voice.delete()
 
         await ctx.channel.delete()
-        
+
+        if otherUser != None:
+            print('Potentially adding ', otherUser, ' to the blocklist.')
+
+            message = await ctx.author.send("React to this message with 👍 to block list the other person.")
+
+            # Add a thumb react to the message and wait for confirmation.
+            await message.add_reaction('👍')
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) == '👍'
+
+            try:
+                await self.bot.wait_for('reaction_add', timeout=60.0, check=check)
+            except asyncio.TimeoutError:
+                await message.edit(content="Timeout, took to long to respond.")
+
         self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
-        await self.reacttointerestCog.listUpdate() #Update the list
+        await self.reacttointerestCog.listUpdate()  # Update the list
+
+    @commands.command(aliases=['pair'],
+                      hidden=True)  # pair must be aliased because we have a function named pair already
+    async def forcePair(self, ctx, user1: discord.User, user2: discord.User = None):
+        # Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
+        # Curious how the pairs handle multiple users. Hopefully not bad.
+
+        # User2 == None:
+        # User1 must not be message.author
+        # User1 must be in the server
+        # Execute pair on author.id and user1
+        # else:
+        # User1 and User2 must be in the server
+        # User1 and User2 must not be equal
+        # User1 and User2 must not both be the message.author.id
+        # Execute pair on user1 and user2
 
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
