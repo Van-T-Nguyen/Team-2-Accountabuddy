@@ -37,7 +37,7 @@ class ReactJoinCog(commands.Cog):
         self.bot = bot
         self.homeserver = bot_config.Home_Server
         self.queueCog = bot.get_cog("QueueCog") #hopefully?
-        self.statchan = self.bot.get_channel(784133192944713770) #get-started in Acc. Univ.
+        self.statchan = self.bot.get_channel(784133192944713770) #seeking-buddy in Acc. Univ.
         
         intents = discord.Intents.default()
         intents.reactions = True #Requires this intent for raw reaction add listener
@@ -291,6 +291,19 @@ class ReactJoinCog(commands.Cog):
             interestslist = queueValues[queueIDs.index(str(targetID))].split('$')
             
             self.queueCog = self.bot.get_cog("QueueCog") 
+
+            """
+            interestCog = self.bot.get_cog("ReactInterestCog") #Need react2interest.py
+            messages = await interestCog.intchan.history(limit=200).flatten()
+            for m in messages: #Looks through messages in #get-started
+                for interests in interestslist:
+                    if m.content == interests: #If the message is the same as the selected interests
+                        #Try to remove ✅ from the two paired users
+                        print("This is a test")
+                        await m.remove_reaction("\U00002705", payload.member) 
+                        await m.remove_reaction("\U00002705", payload.member.guild.get_member(targetID)) 
+            """
+            
             await self.queueCog.pair(payload.user_id,targetID,interestslist) #Done
             
             #kvRemoveKey(tiefile,targetID) #REMOVAL IS DONE ELSEWHERE. Just remove from queue and gold.

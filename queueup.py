@@ -213,14 +213,27 @@ class QueueCog(commands.Cog):
         for x in range(len(users)):
             await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
 
-    #@commands.command()
+    @commands.command()
     async def dropout(self,ctx):
-        """Removes you from the queue if you are on it"""
+        """Shortcut to remove yourself from the queue"""
         if(findValue(spread, "Queue", ctx.author.id) != None): #Key already exists
+            ids, interests = get_sheet(spread, "Queue") #For removing the react
+            print("AAAAAAAAA")
+            print(interests)
             deleteEntry(spread, "Queue", ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
             self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
             await self.reacttojoinCog.listUpdate() #Update the list
+
+            for i in range(len(ids)):
+                    if ids[i] == ctx.author.id:
+                        interests = interests[i].split("$") #Make interests the dropping out user's interests
+
+            interestCog = self.bot.get_cog("ReactInterestCog") #Need react2interest.py
+            messages = await interestCog.intchan.history(limit=200).flatten()
+            for m in messages: #Looks through messages in #get-started        
+                await m.remove_reaction("\U00002705", ctx.author) #Try to remove ✅ from the user
+                
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
@@ -415,6 +428,32 @@ class QueueCog(commands.Cog):
         print("user1 is {}".format(user1))
         user1obj = await self.bot.fetch_user(user1)
         user2obj = await self.bot.fetch_user(user2)
+
+        commonInterests = []
+        ids, queueInterests = get_sheet(spread, "Queue")
+        print(queueInterests)
+        for i in range(len(ids)):
+            print(ids[i])
+            print(user1)
+            print(user2)
+            if (int(ids[i]) == int(user1) or int(ids[i]) == int(user2)):
+                print(queueInterests[i])
+                print("CCCCCCCCCCCC")
+                tempInterests = queueInterests[i].split("$")
+                for i in range(len(tempInterests)):
+                    print(tempInterests[i])
+                    commonInterests.append(tempInterests[i])
+        print("BBBBBBBBBBBBBBBBB")
+        print(commonInterests)
+        interestCog = self.bot.get_cog("ReactInterestCog") #Need react2interest.py
+        messages = await interestCog.intchan.history(limit=200).flatten()
+        for m in messages: #Looks through messages in #get-started
+            #Try to remove ✅ from the two paired users
+            for interest in commonInterests:
+                if (interest == m.content):
+                    await m.remove_reaction("\U00002705", user1obj) 
+                    await m.remove_reaction("\U00002705", user2obj) 
+
         await user1obj.send("You've been paired with {}!".format(user2obj.name))
         await user2obj.send("You've been paired with {}!".format(user1obj.name))
         

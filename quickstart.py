@@ -219,5 +219,12 @@ if __name__ == '__main__':
     spreadsheet = spread()
     #write_sheet(spreadsheet, "Users", ["162777143028350976", ["Blah", "Hahaha MORE entries"]])
     #deleteEntry(spreadsheet, "Users", 162777143028350976)
+<<<<<<< Updated upstream
     get_sheet(spreadsheet, "Message")
     #print(findValue(spreadsheet, "Groups", 112))
+=======
+    ids, interests = get_sheet(spreadsheet, "Queue")
+    print(ids)
+    print(interests)
+    #print(findValue(spreadsheet, "Groups", 112))
+>>>>>>> Stashed changes
