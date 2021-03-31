@@ -108,11 +108,8 @@ class QueueCog(commands.Cog):
                     await ctx.send("We'll put you on the list instead...\n\n")
 
         #Normal joining if they pass all the checks.
-
         
-
         #List interests
-        
         interests = kvGetKeys(interestsfile)
         #this kvGetKeys function comes from keyvaluemanagement.py. It treats a text file like a dictionary.
         
@@ -160,8 +157,6 @@ class QueueCog(commands.Cog):
             else:
                 break
             
-            
-        
         """
         
         debugtext = "Parsed interests: {}\n".format(readinterests)
@@ -246,14 +241,12 @@ class QueueCog(commands.Cog):
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             pass"""
     
-    
     async def addToQueue(self,ctx, user,interests:list,sendDM=False):
         """Add a user to the queue with these interests. Returns an integer."""
         #Error codes:
         #0 = No error
         #1 = Unable to send DM
-        
-        
+          
         #queuefile
         if(findValue(spread, "Queue", user.id) is not None): #Key already exists
             pass #No error... yet.
@@ -296,7 +289,7 @@ class QueueCog(commands.Cog):
         await self.delete_role(ctx)
 
         for voice in ctx.channel.category.voice_channels:
-            if voice.name == ctx.channel.name:
+            if voice.name.lower() == ctx.channel.name.lower():
                 await voice.delete()
 
         await ctx.channel.delete()
@@ -304,7 +297,6 @@ class QueueCog(commands.Cog):
         self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
         await self.reacttointerestCog.listUpdate() #Update the list
 
-    
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
         #Forces two users to pair up. Doesn't remove them from the queue... possible bugs?
@@ -354,16 +346,12 @@ class QueueCog(commands.Cog):
                     
         await ctx.send("Something went wrong.")
         
-        
-    
     @commands.command(hidden=True) #Not ever used by a user itself
     async def upd(self,ctx):
         self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
         await self.reacttojoinCog.listUpdate() #Update the list
         print("[upd ran]")
-    
-    
-    
+   
     async def queueUpdate(self):
         """Check for pairs and pair them if applicable."""
         #Check for possible pairings in the file.
@@ -418,7 +406,6 @@ class QueueCog(commands.Cog):
 
         return text
 
-    
     async def pair(self, user1: int, user2:int, interests:list = ['unknown'], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
@@ -467,7 +454,6 @@ class QueueCog(commands.Cog):
                 deleteEntry(spread, "Queue", int(user1))
                 deleteEntry(spread, "Queue", int(user2))
 
-    
     #Give a workspace for two pairbuds to chitchat. Saves ID of channel and it's ID to file.
     async def giveWorkspace(self,user1:int,user2:int,interests:list=['Unknown']):
         #Create a channel, create a role, give that role to two people, save the Channel and ID pair to file, ping both users.
@@ -520,7 +506,6 @@ class QueueCog(commands.Cog):
     
     def getColor(self):
         return random.randint(0x7F7F7F, 0xFFFFFF) #50-100 brightness for each channel, so the color stays bright
-    
     
     #Creates a new role and assigns it to an Accountabuddy pair
     #Logan: I've added optional list support and made a color maker function above.
@@ -610,8 +595,62 @@ class QueueCog(commands.Cog):
         await ctx.send("You do not have that role")
     
     #called by !changecolor @role dark green
-   
+   @commands.command()
+    async def bl(self,ctx):
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist") 
+        user=ctx.author.id
+        userx=ctx.message.mentions[0].id
 
+        index=findValue(spread,"Blacklist", str(user))
+        if(index!=None): #if user already in bl userid 
+            index+=2
+            xvar=getValue(spread,"Blacklist",str(user))
+            tvar=xvar[1].split(";")
+            if (str(userx) in tvar):
+                await ctx.send("This user is already blacklisted")
+        
+            else: #user not on blacklist, blacklist user 
+                #add userx to black list column 
+                editValue(spread,"Blacklist",str(user),1,str(userx),True)
+                await ctx.send ("User has been blacklisted")
+        else: #add userx to black list column 
+            write_sheet(spread, "Blacklist", [str(user), str(userx)])
+            await ctx.send ("User has been blacklisted")
+
+    @commands.command()
+    async def rbl(self, ctx):
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist")
+        user=ctx.author.id
+        userx= ctx.message.mentions[0].id
+
+        index=findValue(spread,"Blacklist", str(user))
+        if(index!=None): #if user already in bl userid 
+            xvar=getValue(spread,"Blacklist", str(user))
+            tvar=xvar[1].split(";")
+            if (len(tvar) == 1):
+                deleteEntry(spread, "Blacklist", str(user))
+            elif (str(userx) in tvar):
+                tstring=""
+                for blocked in tvar:
+                    if blocked==str(userx):
+                        tvar.remove(blocked)
+                    else:
+                        if tstring == "":
+                            tstring=tstring+blocked
+                        else:
+                            tstring=";"+tstring+blocked 
+                editValue(spread,"Blacklist",str(user),1,tstring,False)
+                await ctx.send ("User has been removed from your blacklist")
+            else: 
+                await ctx.send("This user is not on your blacklist")
+        else: 
+            await ctx.send("You don't have anyone blacklisted") 
+   
+    
+  
+    
     @commands.command()
     async def li(self, ctx):
         """
@@ -732,5 +771,5 @@ class QueueCog(commands.Cog):
         Stops daily check-in
     """.format(bot_config.pfix))
 
-    def setup(bot):
-        bot.add_cog(QueueCog(bot))
+def setup(bot):
+    bot.add_cog(QueueCog(bot))

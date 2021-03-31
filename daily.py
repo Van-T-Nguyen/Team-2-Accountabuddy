@@ -58,10 +58,10 @@ class sendDaily(commands.Cog):
 		lb = "{}: {}\n{}: {}\n{}: {}".format(names[0], scores[0], names[1], scores[1], names[2], scores[2])
 		await ctx.send(lb)
 
-	@tasks.loop(minutes=1)
-	async def dailyMsg(self):
-		for channel in self.listOfChannels:
-			await self.createMessage(channel)
+    @tasks.loop(minutes=1)
+    async def dailyMsg(self):
+        for channel in self.listOfChannels:
+            await self.createMessage(channel)
 
 	@commands.Cog.listener()
 	async def on_guild_channel_create(self, channel):
