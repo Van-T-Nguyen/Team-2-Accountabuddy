@@ -21,10 +21,10 @@ def findValue(spread, sheet, id): # Finds where an ID is held in the spreadsheet
     if not values:
         print('No data found.')
         return None
-    i = 2; # Starts at 2 because sheets indices start at 1 and the first index is the name for our categories.
+    i = 0;
     for entry in values:
-        if id == int(entry[0]):
-            return i
+        if id == entry[0]:
+            return i # Keep in mind that the google sheets values start at row 2, so if you're inserting into the sheets, add 2
         i = i + 1
 
 def get_id(sheet):
@@ -62,13 +62,16 @@ def get_sheet(spreadsheet, sheet):
         return ids, interests
     elif (sheet == "Groups"):
         ids, scores, link1, goals1, link2, goals2 = get_groups(values)
-        return ids, scores, link1, goals1, link2, goals2
+        return ids, scores, link1, link2
     elif (sheet == "Leaderboard"):
-        ids, scores = get_leaderboard(values)
-        return ids, scores
+        ids, names, scores = get_leaderboard(values)
+        return ids, names, scores
     elif (sheet == "Interests"):
         interests, categories = get_interests(values)
         return interests, categories
+    elif (sheet == "Blacklist"):
+        ids, blacklist = get_blacklist(values)
+        return ids, blacklist
 
 def get_queue(values):
     ids = []    
@@ -112,11 +115,13 @@ def get_groups(values):
 
 def get_leaderboard(values):
     ids = []    
+    names = []
     scores = []
     for row in values:
         ids.append(row[0])
-        scores.append(row[1])
-    return ids, scores
+        names.append(row[1])
+        scores.append(row[2])
+    return ids, names, scores
 
 def get_interests(values):
     interests = []
@@ -126,6 +131,14 @@ def get_interests(values):
         categories.append(row[1])
     return interests, categories
 
+def get_blacklist(values):
+    ids = []
+    blacklist = []
+    for row in values:
+        ids.append(row[0])
+        blacklist.append(row[1])
+    return ids, blacklist
+
 def write_sheet(spreadsheet, sheet, values:list):
     values = [values]
     body = {
@@ -133,7 +146,7 @@ def write_sheet(spreadsheet, sheet, values:list):
     }
     result = spreadsheet.values().append(
     spreadsheetId=SPREADSHEET_ID, range=sheet,
-    valueInputOption="RAW", body=body).execute()
+    valueInputOption="USER_ENTERED", body=body).execute()
     print('{0} cells appended.'.format(result \
                                        .get('updates') \
                                        .get('updatedCells')))
@@ -141,6 +154,8 @@ def write_sheet(spreadsheet, sheet, values:list):
 def deleteEntry(spread, sheet, id): # Deletes the row of the associated ID.
     # Gets the values held in the spreadsheet
     index = findValue(spread, sheet, id)
+    if(index == None):
+        return print("[quickstart deleteEntry] index returned none, aborting; database list possibly empty")
     sheet_id = get_id(sheet)
     delete_body = {
         "requests" : {
@@ -158,6 +173,29 @@ def deleteEntry(spread, sheet, id): # Deletes the row of the associated ID.
     
     sortSheet(spread, sheet)
 
+def editValue(spread, sheet, id, colNum, value, append = False): # Target is to be defined as the number of the column. I.E. Column B = Target 2
+    index = findValue(spread, sheet, id) + 2 # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
+    # Here we obtain the row that we are hoping to change
+    result = spread.values().get(spreadsheetId = SPREADSHEET_ID, range = sheet).execute()
+    temp = result.get("values")[index-1]
+    # Here we check if we want to append our value into the cell specified. This is used for adding goals.
+    if append:
+        temp[colNum] = temp[colNum] + ";" + str(value)
+    else:
+        temp[colNum] = str(value)
+    index = findValue(spread, sheet, id) + 2 # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
+    # Here we define a range that encompasses the entirety of the row in question.
+    range = sheet + "!A" + str(index) + ":I" + str(index)
+    # Here we define the request body for the function specifying the range and what we want to add in.
+    value_Range_Body = {
+        "range" : sheet + "!A" + str(index) + ":I" + str(index),
+        "values" : [
+            temp
+        ]
+    }
+    # Our current approach is to update the entire row but only change one cell at a time.
+    result = spread.values().update(spreadsheetId = SPREADSHEET_ID, 
+                            range = range, valueInputOption = "USER_ENTERED", body = value_Range_Body).execute()
 
 def sortSheet(spread, sheet, sortCol = 0, order = "ASCENDING"):
     sheet_id = get_id(sheet)
@@ -216,15 +254,11 @@ def spread():
     return sheet
 
 if __name__ == '__main__':
-    spreadsheet = spread()
-    #write_sheet(spreadsheet, "Users", ["162777143028350976", ["Blah", "Hahaha MORE entries"]])
-    #deleteEntry(spreadsheet, "Users", 162777143028350976)
-<<<<<<< Updated upstream
-    get_sheet(spreadsheet, "Message")
-    #print(findValue(spreadsheet, "Groups", 112))
-=======
-    ids, interests = get_sheet(spreadsheet, "Queue")
-    print(ids)
-    print(interests)
-    #print(findValue(spreadsheet, "Groups", 112))
->>>>>>> Stashed changes
+    spread = spread()
+    sortSheet(spread, "Leaderboard", 2)
+    # index = findValue(spread, "Leaderboard", "189543454563368960")
+    # ids = []
+    # names = []
+    # scores = []
+    # ids, names, scores = get_sheet(spread, "Leaderboard")
+    # editValue(spread, "Leaderboard", "189543454563368960", 2, int(scores[index]) + 1, False)
