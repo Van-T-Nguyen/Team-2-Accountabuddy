@@ -93,7 +93,8 @@ class sendDaily(commands.Cog):
 	async def on_reaction_add(self, react, user):
 		numReact = react.count
 		if (numReact > 2 and react.emoji ==  '\U0001F44B'):
-			await react.message.channel.send("Thanks for checking in. Your score has been incrased.")
+			await react.message.edit(content="Thanks for checking in. Your score has been incrased.")
+			await react.message.clear_reaction('\U0001F44B')
 			users = await react.users().flatten()
 			print(users)
 			for user in users:
