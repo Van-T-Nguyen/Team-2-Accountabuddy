@@ -8,15 +8,15 @@ import psutil
 import os
 import random
 
-intents = discord.Intents.all()
-
 os.environ['DISPLAY'] = ':0' #linux req'd
 
 textfiles = ['interests.txt','queue/userqueue.txt'] #Defining a text file here ensures it's existence when the bot runs. 
 
-pfix = '/'  #Changeable prefix for calling the bot.
+pfix = bot_config.pfix  #Changeable prefix for calling the bot.
 
-startup_extensions = ['blankcog','queueup','daily','leaderboard'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
+intents = discord.Intents.all()
+
+startup_extensions = ['blankcog','react2join','react2interest','queueup','daily', 'leaderboard'] #If you add a new module (python file) then add it's name here (without extension) and the bot will import it.
 
 def makeList(path):
     """Return a list of ints from this file."""
@@ -31,32 +31,36 @@ def addToList(path,item):
     f.write(str(item)+"\n")
     f.close()
 
-def removeFromList(path, item):
+def removeFromList(path, key):
     with open(path, "r") as f:
         list = f.readlines()#.split("/n")
         list = [x.strip("\n") for x in list]
 
     with open(path, "w") as f:
         for x in list:
-            if x != str(item):
+            if str(key) in x:
+                pass
+            elif str(key) not in x:
                 f.write(x + "\n")
-            elif x == list[(len(list)-1)] and list[(len(list)-1)] != "\n":
-                f.write("\n")
             else:
                 pass
 
-def isOnList(path,item):
+def isOnList(path,item,val):
     """Checks to see if this is on the list in the file."""
     f = open(path,"r")
     outlist = f.read().splitlines()
     f.close()
+    i = 0;
     #print("{} in {}".format(str(item),outlist))
     for thing in outlist:
+        i = i + 1;
         if( str(item) == thing):
             #print("{} is {}".format(str(item),thing))
+            if(val):
+                return i
             return True
-            
-    
+    if(val):
+        return -1
     return False
 
 def get_prefix(bot, msg):
@@ -70,7 +74,7 @@ def get_prefix(bot, msg):
 
 desc = '''AccountaBuddy'''
 
-bot = commands.Bot(command_prefix=get_prefix,description=desc, intents=intents)
+bot = commands.Bot(command_prefix=get_prefix,description=desc, intents=intents, help_command=None)
 
 
 @bot.event
@@ -79,7 +83,7 @@ async def on_ready():
     print(bot.user.name)
     print(bot.user.id)
     print('------')
-    await bot.change_presence(activity=discord.Game(name=(pfix+'help')))
+    #await bot.change_presence(activity=discord.Game(name=(pfix+'help')))
     #bot.remove_command('help')
     if __name__ == '__main__':
         for extension in startup_extensions:
@@ -123,13 +127,6 @@ async def on_message(message):
     
     await bot.process_commands(message)
 
-'''
-@bot.event
-async def on_guild_channel_create(channel):
-	await channel.send("test")
-	sendDaily.dailyMsg.start()
-'''
-
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):
@@ -150,3 +147,4 @@ async def keylock(ctx):
 """
 
 bot.run(bot_config.token, reconnect=True)
+    

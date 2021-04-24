@@ -21,10 +21,10 @@ def findValue(spread, sheet, id): # Finds where an ID is held in the spreadsheet
     if not values:
         print('No data found.')
         return None
-    i = 0;
+    i = 2; # Starts at 2 because sheets indices start at 1 and the first index is the name for our categories.
     for entry in values:
-        if id == entry[0]:
-            return i # Keep in mind that the google sheets values start at row 2, so if you're inserting into the sheets, add 2
+        if id == int(entry[0]):
+            return i
         i = i + 1
 
 def get_id(sheet):
@@ -155,26 +155,37 @@ def deleteEntry(spread, sheet, id): # Deletes the row of the associated ID.
     # Gets the values held in the spreadsheet
     index = findValue(spread, sheet, id)
     if(index == None):
-        return print("[quickstart deleteEntry] index returned none, aborting; database list possibly empty")
+        print("[quickstart deleteEntry] index returned none, aborting; database list possibly empty")
+        return
+    print("[quickstart deleteEntry] found and deleting index {}".format(index))
+    #index = index + 2
     sheet_id = get_id(sheet)
-    delete_body = {
-        "requests" : {
-            "deleteDimension": {
-                "range": {
-                    "sheetId": sheet_id,
-                    "dimension": "ROWS",
-                    "startIndex": index - 1,
-                    "endIndex": index
-                }
-            }
-        }
+    # delete_body = [
+    #     {
+    #         "requests" : [{
+    #             "deleteDimension": {
+    #                 "range": {
+    #                     "sheetId": sheet_id,
+    #                     "dimension": "ROWS",
+    #                     "startIndex": index,
+    #                     "endIndex": index+1
+    #                 }
+    #             }
+    #         }
+    #         ]
+    #     }
+    # ]
+    clear_body = {
+        "ranges" : [
+            sheet + "!A" + str(index) + ":" + str(index)
+        ]
     }
-    result = spread.batchUpdate(spreadsheetId = SPREADSHEET_ID, body = delete_body).execute()
+    result = spread.values().batchClear(spreadsheetId = SPREADSHEET_ID, body = clear_body).execute()
     
     sortSheet(spread, sheet)
 
 def editValue(spread, sheet, id, colNum, value, append = False): # Target is to be defined as the number of the column. I.E. Column B = Target 2
-    index = findValue(spread, sheet, id) + 2 # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
+    index = findValue(spread, sheet, id) # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
     # Here we obtain the row that we are hoping to change
     result = spread.values().get(spreadsheetId = SPREADSHEET_ID, range = sheet).execute()
     temp = result.get("values")[index-1]
@@ -183,7 +194,7 @@ def editValue(spread, sheet, id, colNum, value, append = False): # Target is to 
         temp[colNum] = temp[colNum] + ";" + str(value)
     else:
         temp[colNum] = str(value)
-    index = findValue(spread, sheet, id) + 2 # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
+    index = findValue(spread, sheet, id) # Get the location that we will be updating our value at, in case it changed. Add 2 for sheet index.
     # Here we define a range that encompasses the entirety of the row in question.
     range = sheet + "!A" + str(index) + ":I" + str(index)
     # Here we define the request body for the function specifying the range and what we want to add in.
@@ -196,6 +207,11 @@ def editValue(spread, sheet, id, colNum, value, append = False): # Target is to 
     # Our current approach is to update the entire row but only change one cell at a time.
     result = spread.values().update(spreadsheetId = SPREADSHEET_ID, 
                             range = range, valueInputOption = "USER_ENTERED", body = value_Range_Body).execute()
+
+def getValue(spread, sheet, id):
+    index = findValue(spread, sheet, id)
+    result = spread.values().get(spreadsheetId = SPREADSHEET_ID, range = sheet + "!A" + str(index) + ":" + str(index)).execute()
+    return result.get("values")[0] # Get the value at 0 because this function returns a list of the list we get from Google Sheets
 
 def sortSheet(spread, sheet, sortCol = 0, order = "ASCENDING"):
     sheet_id = get_id(sheet)
@@ -255,7 +271,9 @@ def spread():
 
 if __name__ == '__main__':
     spread = spread()
-    sortSheet(spread, "Leaderboard", 2)
+    # sortSheet(spread, "Leaderboard", 2)
+    # userVals = getValue(spread, "Leaderboard", "189543454563368960")
+    # print("User " + userVals[0] + "'s name is " + userVals[1] + " and their score is " + userVals[2])
     # index = findValue(spread, "Leaderboard", "189543454563368960")
     # ids = []
     # names = []
