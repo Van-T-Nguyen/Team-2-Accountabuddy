@@ -268,7 +268,9 @@ class ReactInterestCog(commands.Cog):
                     print("[react2interest listupdate] {} interacted with checkmarks and now has no interests. Removing from DB.".format(dbid))
                     deleteEntry(spread,"Queue",int(dbid))
                 else:
-                    print("[react2interest listUpdate] Not removing entry {} because they haven't interacted with a checkmark- possibly present in database from other means?")
+                    deleteEntry(spread,"Queue",int(dbid))
+                    print("[react2interest listupdate] {} did NOT interact with checkmarks, but they were in the databse- I'm removing them to make sure conflicts do not occurr.".format(dbid))
+                    #print("[react2interest listUpdate] Not removing entry {} because they haven't interacted with a checkmark- possibly present in database from other means?")
         
         #Update the list and finished.
         self.updateids = [] #Clear our cache of update users

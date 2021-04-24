@@ -208,14 +208,27 @@ class QueueCog(commands.Cog):
         for x in range(len(users)):
             await ctx.send("{}: {}\n".format(home.get_member(int(users[x])).name, interests[x]))
 
-    #@commands.command()
+    @commands.command()
     async def dropout(self,ctx):
-        """Removes you from the queue if you are on it"""
+        """Shortcut to remove yourself from the queue"""
         if(findValue(spread, "Queue", ctx.author.id) != None): #Key already exists
+            ids, interests = get_sheet(spread, "Queue") #For removing the react
+            print("AAAAAAAAA")
+            print(interests)
             deleteEntry(spread, "Queue", ctx.author.id) #Easy peasy
             await ctx.send("Removed!")
             self.reacttojoinCog = self.bot.get_cog("ReactJoinCog")
             await self.reacttojoinCog.listUpdate() #Update the list
+
+            for i in range(len(ids)):
+                    if ids[i] == ctx.author.id:
+                        interests = interests[i].split("$") #Make interests the dropping out user's interests
+
+            interestCog = self.bot.get_cog("ReactInterestCog") #Need react2interest.py
+            messages = await interestCog.intchan.history(limit=200).flatten()
+            for m in messages: #Looks through messages in #get-started        
+                await m.remove_reaction("\U00002705", ctx.author) #Try to remove ✅ from the user
+                
         else:
             print("[removeFromQueue] User doesn't exist in the queue. Doing nothing.")
             await ctx.send("You're not on the waitlist!")
@@ -273,6 +286,17 @@ class QueueCog(commands.Cog):
             await ctx.send("You can only abandon groups in your meeting room!")
             return
 
+        for callerrole in ctx.message.author.roles:
+            if (callerrole.name.lower() == "accountabuds"):  # the role is called accountabuds
+                members = callerrole.members
+                try:
+                    for m in members:
+                        if (m != ctx.message.author):
+                            otherUser = m.id
+                except Exception as e:
+                    print("[endPair error] Couldn't remove the author's user from the role (Which should never happen) or the role only had one member")
+                    otherUser = None
+
         await self.delete_role(ctx)
 
         for voice in ctx.channel.category.voice_channels:
@@ -280,9 +304,50 @@ class QueueCog(commands.Cog):
                 await voice.delete()
 
         await ctx.channel.delete()
-        
+
+        if otherUser != None:
+            print('Potentially adding ', otherUser, ' to the blocklist.')
+
+            message = await ctx.author.send("Do you want to blocklist this person to not be paired with them again?\nClick on 👍 to add them to the blocklist.")
+
+            # Add a thumb react to the message and wait for confirmation.
+            await message.add_reaction('👍')
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) == '👍'
+
+            try:
+                await self.bot.wait_for('reaction_add', timeout=120.0, check=check)
+                
+                blacklist = get_sheet(spread, "Blacklist")
+                #users, blacklisted = get_sheet(spread, "Blacklist") 
+                user=ctx.author.id
+                userx=otherUser
+                
+                print("[queueup rbl] searching for {} on blacklist".format(user))
+                index=findValue(spread,"Blacklist", int(user))
+                print("[queueup rbl] result: {}".format(index))
+                if(index!=None): #if user already in bl userid 
+                    #index+=2
+                    xvar=getValue(spread,"Blacklist",int(user))
+                    tvar=xvar[1].split(";")
+                    if (str(userx) in tvar):
+                        await message.edit(content="This user is already blacklisted")
+                
+                    else: #user not on blacklist, blacklist user 
+                        #add userx to black list column 
+                        editValue(spread,"Blacklist",int(user),1,str(userx),True)
+                        await message.edit(content="User has been blacklisted")
+                else: #add userx to black list column 
+                    write_sheet(spread, "Blacklist", [str(user), str(userx)])
+                    await message.edit(content="User has been blacklisted")
+                
+                
+            except asyncio.TimeoutError:
+                await message.edit(content="Timeout, took to long to respond.")
+
         self.reacttointerestCog = self.bot.get_cog("ReactInterestCog")
-        await self.reacttointerestCog.listUpdate() #Update the list
+        await self.reacttointerestCog.listUpdate()  # Update the list
 
     @commands.command(aliases=['pair'],hidden=True) #pair must be aliased because we have a function named pair already
     async def forcePair(self,ctx,user1:discord.User, user2:discord.User = None):
@@ -363,6 +428,10 @@ class QueueCog(commands.Cog):
                         otherinterest = interests[j] #Possible partner's interests
                         matches = set(thisinterest) & set(otherinterest)
                         if(len(matches) > 0): #Has a match at all, not complicated
+                            
+                            if(self.checkBlacklisted(userid,otherid)==True): #if they are blacklisted, continue
+                                continue
+                            
                             #Pair 'em
                             print("[queueUpdate] matches are: {}".format(matches))
                             await self.pair(userid, otherid, interests=matches, removeFromQueue=True)
@@ -392,7 +461,39 @@ class QueueCog(commands.Cog):
         text = leaderboardlist
 
         return text
-
+    
+    
+    def checkBlacklisted(self,user1,user2):
+        #Given user1, check if user2 is on their blacklist.
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist")
+        user=user1
+        userx= user2
+        
+        index=findValue(spread,"Blacklist", int(user))
+        if(index!=None): #if user already in bl userid 
+            xvar=getValue(spread,"Blacklist", int(user))
+            tvar=xvar[1].split(";")
+            if(str(userx) in tvar):
+                print("[queuep checkBlacklisted] {} has {} blacklisted".format(user,userx))
+                return True;
+        
+        user = user2;
+        userx = user1; #check reversals
+        
+        index=findValue(spread,"Blacklist", int(user))
+        if(index!=None): #if user already in bl userid 
+            xvar=getValue(spread,"Blacklist", int(user))
+            tvar=xvar[1].split(";")
+            if(str(userx) in tvar):
+                print("[queuep checkBlacklisted] {} has {} blacklisted".format(user,userx))
+                return True;
+        print("[queuep checkBlacklisted] {} does NOT have {} blacklisted".format(user,userx))
+        return False;
+    
+    
+    
+    
     async def pair(self, user1: int, user2:int, interests:list = ['unknown'], removeFromQueue:bool=True):# Pair and remove their entries from the queue
         
         #Create role
@@ -402,6 +503,36 @@ class QueueCog(commands.Cog):
         print("user1 is {}".format(user1))
         user1obj = await self.bot.fetch_user(user1)
         user2obj = await self.bot.fetch_user(user2)
+        
+        #Check to make sure these two aren't blacklisted.
+        if(self.checkBlacklisted(user1,user2)==True): #if they are blacklisted, return early
+            return
+        
+        commonInterests = []
+        ids, queueInterests = get_sheet(spread, "Queue")
+        print(queueInterests)
+        for i in range(len(ids)):
+            print(ids[i])
+            print(user1)
+            print(user2)
+            if (int(ids[i]) == int(user1) or int(ids[i]) == int(user2)):
+                print(queueInterests[i])
+                print("CCCCCCCCCCCC")
+                tempInterests = queueInterests[i].split("$")
+                for i in range(len(tempInterests)):
+                    print(tempInterests[i])
+                    commonInterests.append(tempInterests[i])
+        print("BBBBBBBBBBBBBBBBB")
+        print(commonInterests)
+        interestCog = self.bot.get_cog("ReactInterestCog") #Need react2interest.py
+        messages = await interestCog.intchan.history(limit=200).flatten()
+        for m in messages: #Looks through messages in #get-started
+            #Try to remove ✅ from the two paired users
+            for interest in commonInterests:
+                if (interest == m.content):
+                    await m.remove_reaction("\U00002705", user1obj) 
+                    await m.remove_reaction("\U00002705", user2obj) 
+
         await user1obj.send("You've been paired with {}!".format(user2obj.name))
         await user2obj.send("You've been paired with {}!".format(user1obj.name))
         
@@ -445,7 +576,7 @@ class QueueCog(commands.Cog):
                     else: #Anything else (3+ entries)
                         interestsline += "{}, ".format(thing)
         
-        await channel.send("<@{}> and <@{}>, here's your private chatroom! You two were both interested in {}\nHave a conversation and say hi! If you want to unpair, use **{}end** to finish your conversation.\n".format(user1,user2,interestsline,bot_config.pfix,bot_config.pfix))
+        await channel.send("<@{}> and <@{}>, here's your private chatroom! \nHave a conversation and say hi! If you want to unpair, use **{}end** to finish your conversation.\n".format(user1,user2,bot_config.pfix,bot_config.pfix))
 
         await self.talk_room(role.id, channel_name)
     
@@ -556,7 +687,67 @@ class QueueCog(commands.Cog):
         await ctx.send("You do not have that role")
     
     #called by !changecolor @role dark green
+    @commands.command()
+    async def block(self,ctx):
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist") 
+        user=ctx.author.id
+        userx=ctx.message.mentions[0].id
+        
+        print("[queueup rbl] searching for {} on blacklist".format(user))
+        index=findValue(spread,"Blacklist", int(user))
+        print("[queueup rbl] result: {}".format(index))
+        if(index!=None): #if user already in bl userid 
+            #index+=2
+            xvar=getValue(spread,"Blacklist",int(user))
+            tvar=xvar[1].split(";")
+            if (str(userx) in tvar):
+                await ctx.send("This user is already blacklisted")
+        
+            else: #user not on blacklist, blacklist user 
+                #add userx to black list column 
+                editValue(spread,"Blacklist",int(user),1,str(userx),True)
+                await ctx.send ("User has been blacklisted")
+        else: #add userx to black list column 
+            write_sheet(spread, "Blacklist", [str(user), str(userx)])
+            await ctx.send ("User has been blacklisted")
+
+    @commands.command()
+    async def unblock(self, ctx):
+        blacklist = get_sheet(spread, "Blacklist")
+        #users, blacklisted = get_sheet(spread, "Blacklist")
+        user=ctx.author.id
+        userx= ctx.message.mentions[0].id
+        
+        print("[queueup rbl] searching for {} on blacklist".format(user))
+        index=findValue(spread,"Blacklist", int(user))
+        print("[queueup rbl] result: {}".format(index))
+        if(index!=None): #if user already in bl userid 
+            xvar=getValue(spread,"Blacklist", int(user))
+            tvar=xvar[1].split(";")
+            print("tvar: {}, len {}".format(tvar,len(tvar)))
+            if (len(tvar) == 1):
+                deleteEntry(spread, "Blacklist", int(user))
+            elif (str(userx) in tvar):
+                tstring=""
+                for blocked in tvar[:]:
+                    if blocked==str(userx):
+                        tvar.remove(blocked)
+                    else:
+                        if tstring == "":
+                            tstring=tstring+blocked
+                        else:
+                            tstring=";"+tstring+blocked 
+                editValue(spread,"Blacklist",int(user),1,tstring,False)
+                await ctx.send ("User has been removed from your blacklist")
+            else: 
+                await ctx.send("This user is not on your blacklist")
+        else: 
+            await ctx.send("You don't have anyone blacklisted") 
    
+    
+  
+    
     @commands.command()
     async def li(self, ctx):
         """
@@ -625,13 +816,13 @@ class QueueCog(commands.Cog):
         
         
         if(payload.user_id == self.bot.user.id): #The bot made this react, ignore
-            return print("[react2join] Bot made react, ignoring.")
+            return print("[react2rules] Bot made react, ignoring.")
         if(payload.guild_id is None):#None guild_ids are in DMs, ignore
-            return print("[react2join] DM reaction, ignoring.")
+            return print("[react2rules] DM reaction, ignoring.")
         if(payload.event_type == "REACTION_REMOVE"):#Reaction removed, ignore.
-            return print("[react2join] Reaction was removed, not added, ignoring.")
+            return print("[react2rules] Reaction was removed, not added, ignoring.")
         if(payload.channel_id != 811364449881161786): #Not the welcome channel, ignore.
-            return print("[react2join] Not in the welcome channel, ignoring.")
+            return print("[react2rules] Not in the welcome channel, ignoring.")
         
 
         if(payload.emoji.name == confirm_emoji): #User confirmed to read the message

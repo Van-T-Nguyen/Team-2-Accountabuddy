@@ -9,11 +9,11 @@ from os import path
 #at beginning of file.
 
 #Primary Functions- You'll be using these:
-#kvSetValue(key,value) - Sets a key to a value. Overwrites if already present.
-#kvAddValue(key,value) - Sets a key to a value. DOES NOTHING if already present.
-#kvRemoveKey(key) - Deletes key and value.
-#kvGetValue(key) - Get Value from key. Returns None if not present.
-#kvGetKey(value) - Get key from a value. Pointless and unreliable - but might be useful if you're sure there aren't duplicates, as it only returns one key.
+#kvSetValue(path,key,value) - Sets a key to a value. Overwrites if already present.
+#kvAddValue(path,key,value) - Sets a key to a value. DOES NOTHING if already present.
+#kvRemoveKey(path,key) - Deletes key and value.
+#kvGetValue(path,key) - Get Value from key. Returns None if not present.
+#kvGetKey(path,value) - Get key from a value. Pointless and unreliable - but might be useful if you're sure there aren't duplicates, as it only returns one key.
 
 
 seperator = "====="
