@@ -48,7 +48,9 @@ def get_sheet(spreadsheet, sheet):
     print(values)
     if not values:
         if (sheet == "Groups"):
-            return None, None, None, None, None, None
+            return None, None, None, None, None, None, None
+        elif (sheet == "Leaderboard"):
+            return None, None, None
         else:
             return None, None
     elif (sheet == "Queue"):
@@ -61,8 +63,8 @@ def get_sheet(spreadsheet, sheet):
         ids, interests = get_users(values)
         return ids, interests
     elif (sheet == "Groups"):
-        ids, scores, link1, goals1, link2, goals2 = get_groups(values)
-        return ids, scores, link1, link2
+        ids, names, scores, goals1, goals2, lastCheckIn, lastActive = get_groups(values)
+        return ids, names, scores, goals1, goals2, lastCheckIn, lastActive
     elif (sheet == "Leaderboard"):
         ids, names, scores = get_leaderboard(values)
         return ids, names, scores
@@ -99,19 +101,21 @@ def get_users(values):
 
 def get_groups(values):
     ids = []    
-    scores = []
-    link1 = []    
+    scores = [] 
+    names = []
     goals1 = []
-    link2 = []    
     goals2 = []
+    lastCheckIn = []
+    lastActive = []
     for row in values:
         ids.append(row[0])
-        scores.append(row[1])
-        link1.append(row[2])
+        names.append(row[1])
+        scores.append(row[2])
         goals1.append(row[3])
-        link2.append(row[4])
-        goals2.append(row[5])
-    return ids, scores, link1, goals1, link2, goals2
+        goals2.append(row[4])
+        lastCheckIn.append(row[5])
+        lastActive.append(row[6])
+    return ids, names, scores, goals1, goals2, lastCheckIn, lastActive
 
 def get_leaderboard(values):
     ids = []    

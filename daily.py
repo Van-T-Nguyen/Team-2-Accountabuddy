@@ -17,8 +17,8 @@ from keyvaluemanagement import *
 
 spread = spread()
 
-minTimeBetweenCheckins = 60*60*4 #12 hours
-#minTimeBetweenCheckins = 60 #60 seconds
+# minTimeBetweenCheckins = 60*60*4 #12 hours
+minTimeBetweenCheckins = 30 #60 seconds
 maxTimeBetweenCheckins = 60*60*72 #72 hours
 
 datadir = "streakData/"
@@ -108,11 +108,14 @@ class sendDaily(commands.Cog):
             
             #Initialize watch things
             
+            groupIndex = findValue(spread, "Groups", channel.id)
+            if(groupIndex == None):
+                write_sheet(spread, "Groups", [str(channel.id), None, 0, None, None, 0, 0])
             
             
-            kvSetValue(dailyTimePath,channel.id,0)
-            kvSetValue(lastCheckedPath,channel.id,0)
-            kvSetValue(streakPath,channel.id,0)
+            # kvSetValue(dailyTimePath,channel.id,0)
+            # kvSetValue(lastCheckedPath,channel.id,0)
+            # kvSetValue(streakPath,channel.id,0)
             
             #self.dailyTime[channel.id] = 0
             #self.lastChecked[channel.id] = 0
@@ -131,10 +134,13 @@ class sendDaily(commands.Cog):
                 print("exception {}".format(e))
             print(self.listOfChannels)
             
-            
-            kvRemoveKey(dailyTimePath,channel.id)
-            kvRemoveKey(lastCheckedPath,channel.id)
-            kvRemoveKey(streakPath,channel.id)
+            groupIndex = findValue(spread, "Groups", channel.id)
+            if(groupIndex != None):
+                deleteEntry(spread, "Groups", channel.id)
+
+            # kvRemoveKey(dailyTimePath,channel.id)
+            # kvRemoveKey(lastCheckedPath,channel.id)
+            # kvRemoveKey(streakPath,channel.id)
             
             
 
@@ -184,10 +190,11 @@ class sendDaily(commands.Cog):
                         
         pass
         
+        id, name, score, goals1, goals2, lastCheckIn, lastActive = get_sheet(spread, "Groups")
+        groupIndex = findValue(spread, "Groups", message.channel.id) - 2
+        # channelIDList = kvGetKeys(dailyTimePath) #Returns a list of keys, in this case, channel IDs.
         
-        channelIDList = kvGetKeys(dailyTimePath) #Returns a list of keys, in this case, channel IDs.
-        
-        if(str(message.channel.id) in channelIDList): #Watched channel
+        if(str(message.channel.id) in id): #Watched channel
             #print("[daily on_message] watched channel")
             if(message.author.bot == False): #Not a bot
                 #print("[daily on_message] not a bot")
@@ -195,27 +202,37 @@ class sendDaily(commands.Cog):
                 
                 
                 
-                if(checktime > int(kvGetValue(dailyTimePath,message.channel.id))+maxTimeBetweenCheckins): #Reset streak, took too long
-                    kvSetValue(streakPath,message.channel.id,0)
+                if(checktime > int(lastCheckIn[groupIndex]) + maxTimeBetweenCheckins): #Reset streak, took too long
+                    # kvSetValue(streakPath,message.channel.id,0)
+                    editValue(spread, "Groups", message.channel.id, 2, 0)
                     #self.streak[message.channel.id] = 0
                     #print("[daily onMessage] streak reset for channel {}".format(message.channel.id))
+                
+                if(checktime > int()):
+                # if(checktime > int(kvGetValue(dailyTimePath,message.channel.id)) + minTimeBetweenCheckins): #Past minimum time
                     
-                if(checktime > int(kvGetValue(dailyTimePath,message.channel.id)) + minTimeBetweenCheckins): #Past minimum time
-                    
-                    if(int(kvGetValue(lastCheckedPath,message.channel.id)) == 0): #Half checked in
+                    if(int(lastActive[groupIndex]) == 0):
+                    # if(int(kvGetValue(lastCheckedPath,message.channel.id)) == 0): #Half checked in
                         #print("[daily on_message] Half check in performed")
                         #self.lastChecked[message.channel.id] = message.author.id
-                        kvSetValue(lastCheckedPath,message.channel.id,message.author.id)
+                        # kvSetValue(lastCheckedPath,message.channel.id,message.author.id)
+                        editValue(spread, "Groups", message.channel.id, 6, message.author.id)
                         
-                    elif (int(kvGetValue(lastCheckedPath,message.channel.id)) != message.author.id): #Fully checked in
+                    elif(int(lastActive[groupIndex]) != message.author.id):
+                    # elif (int(kvGetValue(lastCheckedPath,message.channel.id)) != message.author.id): #Fully checked in
                         #print("[daily on_message] Full check in performed")
-                        await self.doCheckinMessage(message.channel,[int(kvGetValue(lastCheckedPath,message.channel.id)),message.author.id]) #The message channel, and the two users that checked in
+                        await self.doCheckinMessage(message.channel,[int(id[groupIndex]),message.author.id])
+                        # await self.doCheckinMessage(message.channel,[int(kvGetValue(lastCheckedPath,message.channel.id)),message.author.id]) #The message channel, and the two users that checked in
                         #self.streak[message.channel.id] +=1
-                        kvSetValue(streakPath,message.channel.id,int(kvGetValue(streakPath,message.channel.id))+1)
+                        # kvSetValue(streakPath,message.channel.id,int(kvGetValue(streakPath,message.channel.id))+1)
+                        newScore = score[groupIndex] + 1
+                        editValue(spread, "Groups", message.channel.id, 2, newScore)
                         #self.dailyTime[message.channel.id] = checktime
-                        kvSetValue(dailyTimePath,message.channel.id,checktime)
+                        # kvSetValue(dailyTimePath,message.channel.id,checktime)
+                        editValue(spread, "Groups", message.channel.id, 5, checktime)
                         #self.lastChecked[message.channel.id] = 0
                         kvSetValue(lastCheckedPath,message.channel.id,0)
+                        editValue(spread, "Groups", message.channel.id, 6, 0)
                     
     
     
@@ -225,11 +242,15 @@ class sendDaily(commands.Cog):
         
         streaktext = ""
         
-        if(int(kvGetValue(streakPath,channel.id)) > 1):
-            if(int(kvGetValue(streakPath,channel.id)) > 3):
+        if(int(getValue(spread, "Groups", channel.id)[2]) > 1):
+            if(int(getValue(spread, "Groups", channel.id)[2] > 3)):
                 streaktext+=":fire::fire: " #flare
-                
-            streaktext += "Checked in {} times in a row!\n".format(int(kvGetValue(streakPath,channel.id)))
+        # if(int(kvGetValue(streakPath,channel.id)) > 1):
+        #     if(int(kvGetValue(streakPath,channel.id)) > 3):
+                # streaktext+=":fire::fire: " #flare
+            
+            streaktext += "Checked in {} times in a row!\n".format(int(getValue(spread, "Groups", channel.id)[2]))
+            # streaktext += "Checked in {} times in a row!\n".format(int(kvGetValue(streakPath,channel.id)))
             
         
         output = "You both earned a chat point, keep it up!\n{}You can earn your next point in {} hours.\n".format(streaktext,int(minTimeBetweenCheckins/(60*60)))
