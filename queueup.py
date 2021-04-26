@@ -653,7 +653,7 @@ class QueueCog(commands.Cog):
 
     #creates functionality for users to change their role color
     @commands.command()
-    async def changecolor(self, ctx,*, color):
+    async def changecolor(self, ctx, color):
         """IN PROGRESS: Allows you to change your group color (only for accountable users)"""
         listOfColors = {
                         "blue" : discord.Color.blue(),
@@ -672,17 +672,18 @@ class QueueCog(commands.Cog):
         role=""
         color=""
         for word in temp: 
+            """
             if "<@&" in word:
                 for letter in word:
                     if letter.isalnum():
                         role= role + letter
-            elif bot_config.pfix not in word:
+            """
+            if bot_config.pfix not in word:
                 color = color + word
-        for x in ctx.guild.roles:
-            if x.id == int(role): 
+        for x in ctx.author.roles:
+            if x.name == "Accountable":
                 if color in listOfColors.keys():
-                    role = ctx.message.guild.get_role(int(role))
-                    await role.edit(color=listOfColors[color])   
+                    await x.edit(color=listOfColors[color])   
                     return   
         await ctx.send("You do not have that role")
     
@@ -848,8 +849,8 @@ class QueueCog(commands.Cog):
     **{0}abandon**
     Abandon a pairing
     
-        **{0}dropout** 
-        Drop from a queue
+    **{0}dropout** 
+    Drop from a queue
 
     **{0}help**
         Shows this message
@@ -864,9 +865,17 @@ class QueueCog(commands.Cog):
     **{0}daily**
         Initiates daily check-in from Accountabuddy
 
-    **{0}stop**
+    **{0}end**
         Stops daily check-in
     """.format(bot_config.pfix))
+
+    async def newRole(self, user):#, user2: int):
+        home = self.bot.get_guild(self.homeserver)
+        #role = await home.create_role(name = "Accountabuds", color = discord.Color(0x0000ff))
+        role = await home.create_role(name = "Accountable", color = discord.Color(self.getColor()))
+        await home.get_member(user).add_roles(role)
+        await role.edit(position=3)
+        return role
 
 def setup(bot):
     bot.add_cog(QueueCog(bot))

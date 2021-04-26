@@ -11,89 +11,106 @@ import re
 import asyncio
 from quickstart import *
 
-import time
-from keyvaluemanagement import *
-
-
 spread = spread()
 
-minTimeBetweenCheckins = 60*60*4 #12 hours
-#minTimeBetweenCheckins = 60 #60 seconds
-maxTimeBetweenCheckins = 60*60*72 #72 hours
-
-datadir = "streakData/"
-
-channelListPath = datadir+"watchchannels.txt"
-
-dailyTimePath = datadir+"dailyTime.txt"
-lastCheckedPath = datadir+"lastChecked.txt"
-streakPath = datadir+"streak.txt"
-
-textfiles = [dailyTimePath,lastCheckedPath,streakPath] #Make sure these files exist on boot
 
 class sendDaily(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.homeserver = bot_config.Home_Server
-        self.ctx = None
-        self.listOfChannels = []
-        self.listOfChannelIDs = []
-        self.listOfUsers = []
-        self.dailyMsg.start()
-        
-        for entry in textfiles:
-            try:
-                f = open(entry,"r")
-                f.close()
-            except Exception as e:
-                print("Making file: {}".format(entry))
-                f = open(entry,"w")
-                f.close()
-        
-        #self.dailyTime = {} #time when the last checkin occurred, defaults to 0
-        #self.lastChecked = {} #channel:id, last user to initiate a checkin. 0 if no check in yet.
-        #self.streak = {} #Streak points
-        
-        
+	def __init__(self, bot):
+		self.bot = bot
+		self.homeserver = bot_config.Home_Server
+		self.ctx = None
+		self.listOfChannels = []
+		self.listOfUsers = []
+		self.dailyMsg.start()
 
-    @commands.command()
-    async def daily(self, ctx):
-        await ctx.send("Attempting to send messages every day")
-        self.dailyMsg.start()
+	@commands.command()
+	async def daily(self, ctx):
+		await ctx.send("Attempting to send messages every day")
+		self.dailyMsg.start()
 
-    @commands.command()
-    async def stop(self, ctx):
-        await self.ctx.send("Admin stop")
-        self.dailyMsg.stop()
+	@commands.command()
+	async def stop(self, ctx):
+		await self.ctx.send("Admin stop")
+		self.dailyMsg.stop()
 
-    @commands.command()
-    async def score(self, ctx):
-        scoreRow = findValue(spread, "Leaderboard", str(ctx.author.id))
-        if(scoreRow == None):
-            await ctx.send("Sorry! You don't have a score. Join a group to start being accountable")
-        else:
-            ids = []
-            names = []
-            scores = []
-            ids, names, scores = get_sheet(spread, "Leaderboard")
-            score = scores[scoreRow]
-            scoreText = "Your score is {}. ".format(score)
-            await ctx.send(scoreText)
+	@commands.command()
+	async def score(self, ctx):
+		scoreRow = findValue(spread, "Leaderboard", str(ctx.author.id))
+		if(scoreRow == None):
+			await ctx.send("Sorry! You don't have a score. Join a group to start being accountable")
+		else:
+			ids = []
+			names = []
+			scores = []
+			ids, names, scores = get_sheet(spread, "Leaderboard")
+			score = scores[scoreRow]
+			scoreText = "Your score is {}. ".format(score)
+			await ctx.send(scoreText)
 
-    #@commands.command()
-    #async def leaderboard(self, ctx):
-        #sortSheet(spread, "Leaderboard", 2, "DESCENDING")
-        #ids = []
-        #names = []
-        #scores = []
-        #ids, names, scores = get_sheet(spread, "Leaderboard")
-        #await ctx.send("Leaderboard:")
-        #lb = "{}: {}\n{}: {}\n{}: {}".format(names[0], scores[0], names[1], scores[1], names[2], scores[2])
-        #await ctx.send(lb)
+	@commands.command()
+	async def leaderboard(self, ctx):
+		sortSheet(spread, "Leaderboard", 2, "DESCENDING")
+		ids = []
+		names = []
+		scores = []
+		ids, names, scores = get_sheet(spread, "Leaderboard")
+		await ctx.send("Leaderboard:")
+		lb = "{}: {}\n{}: {}\n{}: {}".format(names[0], scores[0], names[1], scores[1], names[2], scores[2])
+		await ctx.send(lb)
 
     @tasks.loop(minutes=1)
     async def dailyMsg(self):
         for channel in self.listOfChannels:
+<<<<<<< Updated upstream
+            await self.createMessage(channel)
+
+	@commands.Cog.listener()
+	async def on_guild_channel_create(self, channel):
+		if(not isinstance(channel,discord.VoiceChannel)):
+			print("About to add: ")
+			print(channel)
+			self.listOfChannels.append(channel)
+			print(self.listOfChannels)
+
+
+
+	@commands.Cog.listener()
+	async def on_guild_channel_delete(self, channel):
+		if(not isinstance(channel,discord.VoiceChannel)):
+			print("About to delete: ")
+			print(channel)
+			try:
+				self.listOfChannels.remove(channel)
+			except Exception as e:
+				print("exception {}".format(e))
+			print(self.listOfChannels)
+
+	async def createMessage(self, ctx):
+		string = "AccountaBuddy checking in. How are you doing on your task?"
+		message = await ctx.send(string)
+		await message.add_reaction('\U0001F44B')
+
+	@commands.Cog.listener()
+	async def on_reaction_add(self, react, user):
+		numReact = react.count
+		if (numReact > 2 and react.emoji ==  '\U0001F44B'):
+			await react.message.channel.send("Thanks for checking in. Your score has been incrased.")
+			users = await react.users().flatten()
+			print(users)
+			for user in users:
+				if(user.id != self.bot.user.id):
+					rowNum = findValue(spread, "Leaderboard", str(user.id))
+					if(rowNum != None):
+						print("found")
+						id = []
+						names = []
+						scores = []
+						id, names, scores = get_sheet(spread, "Leaderboard")
+						newScore = int(scores[rowNum]) + 1
+						editValue(spread, "Leaderboard", str(user.id), 2, newScore)
+					else:
+						write_sheet(spread, "Leaderboard", [str(user.id), user.name, 1])
+=======
             #await self.createMessage(channel)
             pass
 
@@ -252,14 +269,18 @@ class sendDaily(commands.Cog):
                     scores = []
                     id, names, scores = get_sheet(spread, "Leaderboard")
                     newScore = int(scores[rowNum]) + 1
+                    if (newScore) == 20: #User reaches an accountable score
+                        queueCog = self.bot.get_cog("QueueCog") #Need queueup.py
+                        messages = await queueCog.newRole(user.id)
+
                     editValue(spread, "Leaderboard", int(user.id), 2, newScore)
                 else:
                     write_sheet(spread, "Leaderboard", [str(user.id), user.name, 1])
     
     
 
+>>>>>>> Stashed changes
 
 
 def setup(bot):
     bot.add_cog(sendDaily(bot))
-
